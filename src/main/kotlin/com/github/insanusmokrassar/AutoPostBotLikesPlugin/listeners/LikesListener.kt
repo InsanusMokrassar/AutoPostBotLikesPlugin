@@ -7,7 +7,7 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import java.lang.ref.WeakReference
 
-const val likeCallbackData = "like"
+private const val likeCallbackData = "like_plugin like"
 fun createLikeButton(text: String): InlineKeyboardButton = InlineKeyboardButton(text).also {
     it.callbackData(likeCallbackData)
 }
