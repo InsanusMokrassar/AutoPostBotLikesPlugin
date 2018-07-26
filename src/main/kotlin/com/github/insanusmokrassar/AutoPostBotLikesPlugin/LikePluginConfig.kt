@@ -6,5 +6,6 @@ class LikePluginConfig(
     val likeAnswer: String = "Liked",
     val dislikeAnswer: String? = null,
     val separateAlways: Boolean = false,
-    val separatedText: String = "Like? :)"
+    val separatedText: String = "Like? :)",
+    val updatesDelay: Long = 1000
 )

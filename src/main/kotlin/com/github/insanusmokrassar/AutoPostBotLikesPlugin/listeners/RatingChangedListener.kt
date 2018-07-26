@@ -8,36 +8,50 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.request.EditMessageReplyMarkup
+import kotlinx.coroutines.experimental.*
 import java.lang.ref.WeakReference
+import java.util.*
 
 class RatingChangedListener(
     private val likesPluginLikesTable: LikesPluginLikesTable,
     private val likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
-    botWR: WeakReference<TelegramBot>,
+    private val botWR: WeakReference<TelegramBot>,
     private val chatId: Long,
     private val likePluginConfig: LikePluginConfig
 ) {
+    private val updateQueue = ArrayDeque<Int>()
+    private var updateJob: Job? = null
+
     init {
-        likesPluginLikesTable.likesChannel.subscribeChecking {
-            val bot = botWR.get() ?: return@subscribeChecking false
-
-            updateMessage(bot, it.first)
-
-            true
+        likesPluginLikesTable.likesChannel.subscribe {
+            updateJob(it.first)
         }
-        likesPluginLikesTable.dislikesChannel.subscribeChecking {
-            val bot = botWR.get() ?: return@subscribeChecking false
-
-            updateMessage(bot, it.first)
-
-            true
+        likesPluginLikesTable.dislikesChannel.subscribe {
+            updateJob(it.first)
         }
-        likesPluginRegisteredLikesMessagesTable.messageIdAllocatedChannel.subscribeChecking {
-            val bot = botWR.get() ?: return@subscribeChecking false
+        likesPluginRegisteredLikesMessagesTable.messageIdAllocatedChannel.subscribe {
+            updateJob(it)
+        }
+    }
 
-            updateMessage(bot, it)
+    private fun updateJob(messageId: Int) {
+        if (updateQueue.contains(messageId)) {
+            updateQueue.remove(messageId)
+        }
+        updateQueue.offer(messageId)
 
-            true
+        updateJob ?:let {
+            updateJob = launch {
+                while (isActive && updateQueue.isNotEmpty()) {
+                    updateMessage(
+                        botWR.get() ?: break,
+                        updateQueue.pop()
+                    )
+
+                    delay(likePluginConfig.updatesDelay)
+                }
+                updateJob = null
+            }
         }
     }
 
