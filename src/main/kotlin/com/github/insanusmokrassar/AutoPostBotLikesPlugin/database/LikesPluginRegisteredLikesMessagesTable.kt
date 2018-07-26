@@ -4,14 +4,18 @@ import kotlinx.coroutines.experimental.channels.BroadcastChannel
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.joda.time.DateTime
 
 private const val broadcastCount = 256
+
+typealias MessageIdToDateTime = Pair<Int, DateTime>
 
 class LikesPluginRegisteredLikesMessagesTable : Table() {
     val messageIdAllocatedChannel = BroadcastChannel<Int>(broadcastCount)
     val messageIdRemovedChannel = BroadcastChannel<Int>(broadcastCount)
 
-    private val messageId = integer("messageId")
+    private val messageId = integer("messageId").primaryKey()
+    private val dateTime = datetime("datetime").clientDefault { DateTime.now() }
 
     init {
         transaction {
@@ -25,11 +29,12 @@ class LikesPluginRegisteredLikesMessagesTable : Table() {
         }
     }
 
-    fun registerMessageId(messageId: Int): Boolean {
+    fun registerMessageId(messageId: Int, dateTime: DateTime): Boolean {
         return (if (messageId !in this) {
             transaction {
                 !insert {
                     it[this@LikesPluginRegisteredLikesMessagesTable.messageId] = messageId
+                    it[this@LikesPluginRegisteredLikesMessagesTable.dateTime] = dateTime
                 }.isIgnore
             }
         } else {
@@ -61,10 +66,23 @@ class LikesPluginRegisteredLikesMessagesTable : Table() {
         }
     }
 
-    fun getAllRegistered(): List<Int> {
+    fun getAllRegistered(): List<MessageIdToDateTime> {
         return transaction {
             selectAll().map {
-                it[messageId]
+                it[messageId] to it[dateTime]
+            }
+        }
+    }
+
+    fun getBetweenDates(
+        from: DateTime = DateTime(0L),
+        to: DateTime = DateTime.now()
+    ): List<MessageIdToDateTime> {
+        return transaction {
+            select {
+                dateTime.between(from, to)
+            }.map {
+                it[messageId] to it[dateTime]
             }
         }
     }

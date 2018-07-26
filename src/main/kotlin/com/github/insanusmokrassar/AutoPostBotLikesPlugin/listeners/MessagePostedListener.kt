@@ -8,7 +8,9 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.SendMessage
 import kotlinx.coroutines.experimental.channels.BroadcastChannel
+import org.joda.time.DateTime
 import java.lang.ref.WeakReference
+import java.util.concurrent.TimeUnit
 
 class MessagePostedListener(
     channel: BroadcastChannel<PostIdListPostMessagesTelegramMessages>,
@@ -40,11 +42,29 @@ class MessagePostedListener(
                     ),
                     onResponse = {
                         _, sendResponse ->
-                        likesPluginRegisteredLikesMessagesTable.registerMessageId(sendResponse.message().messageId())
+                        likesPluginRegisteredLikesMessagesTable.registerMessageId(
+                            sendResponse.message().messageId(),
+                            sendResponse ?.message() ?.date() ?.toLong() ?.let {
+                                DateTime(
+                                    TimeUnit.SECONDS.toMillis(
+                                        it
+                                    )
+                                )
+                            } ?: DateTime.now()
+                        )
                     }
                 )
             } else {
-                likesPluginRegisteredLikesMessagesTable.registerMessageId(lastMessage.messageId())
+                likesPluginRegisteredLikesMessagesTable.registerMessageId(
+                    lastMessage.messageId(),
+                    lastMessage.date() ?.toLong() ?.let {
+                        DateTime(
+                            TimeUnit.SECONDS.toMillis(
+                                it
+                            )
+                        )
+                    } ?: DateTime.now()
+                )
             }
 
             true

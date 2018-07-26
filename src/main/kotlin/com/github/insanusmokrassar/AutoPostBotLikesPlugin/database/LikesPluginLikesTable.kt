@@ -7,6 +7,7 @@ import org.h2.jdbc.JdbcSQLException
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.joda.time.DateTime
 
 typealias MessageIdRatingPair = Pair<Int, Int>
 typealias MessageIdUserId = Pair<Int, Long>
@@ -87,9 +88,14 @@ class LikesPluginLikesTable(
      *
      * @return Pairs with messageId to Rate
      */
-    fun getRateRange(min: Int?, max: Int?): List<MessageIdRatingPair> {
-        return likesPluginRegisteredLikesMessagesTable.getAllRegistered().map {
-            it to getPostRating(it)
+    fun getRateRange(
+        min: Int? = null,
+        max: Int? = null,
+        from: DateTime = DateTime(0L),
+        to: DateTime = DateTime.now()
+    ): List<MessageIdRatingPair> {
+        return likesPluginRegisteredLikesMessagesTable.getBetweenDates(from, to).map {
+            it.first to getPostRating(it.first)
         }.sortedByDescending {
             it.second
         }.filter {
