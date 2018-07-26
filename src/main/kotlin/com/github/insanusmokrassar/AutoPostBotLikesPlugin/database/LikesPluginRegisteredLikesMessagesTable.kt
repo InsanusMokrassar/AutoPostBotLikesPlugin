@@ -15,7 +15,7 @@ class LikesPluginRegisteredLikesMessagesTable : Table() {
     val messageIdRemovedChannel = BroadcastChannel<Int>(broadcastCount)
 
     private val messageId = integer("messageId").primaryKey()
-    private val dateTime = datetime("datetime").default(DateTime.now())// TODO:: Fix after update
+    private val dateTime = datetime("datetime")
 
     init {
         transaction {
