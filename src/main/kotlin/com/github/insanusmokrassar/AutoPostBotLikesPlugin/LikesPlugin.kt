@@ -16,7 +16,6 @@ class LikesPlugin(
     config: IObject<Any>?
 ) : Plugin {
     private val config = config ?.toObject(LikePluginConfig::class.java) ?: LikePluginConfig()
-    override val version: PluginVersion = 0L
 
     val likesPluginRegisteredLikesMessagesTable = LikesPluginRegisteredLikesMessagesTable()
     val likesPluginLikesTable = LikesPluginLikesTable(likesPluginRegisteredLikesMessagesTable)
