@@ -1,4 +1,4 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
+package com.github.insanusmokrassar.AutoPostBotLikesPlugin.old.database
 
 import kotlinx.coroutines.experimental.channels.BroadcastChannel
 import kotlinx.coroutines.experimental.launch

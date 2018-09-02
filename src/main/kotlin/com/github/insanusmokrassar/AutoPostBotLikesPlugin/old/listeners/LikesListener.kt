@@ -1,15 +1,15 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
+package com.github.insanusmokrassar.AutoPostBotLikesPlugin.old.listeners
 
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.old.database.LikesPluginLikesTable
 import com.github.insanusmokrassar.AutoPostTelegramBot.realCallbackQueryListener
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.*
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import java.lang.ref.WeakReference
 
-private const val likeCallbackData = "like_plugin like"
-fun createLikeButton(text: String): InlineKeyboardButton = InlineKeyboardButton(text).also {
-    it.callbackData(likeCallbackData)
+private const val likeCallbackData = "like_plugin %s"
+fun createLikeButton(identifier: String): InlineKeyboardButton = InlineKeyboardButton(identifier).also {
+    it.callbackData(likeCallbackData.format(identifier))
 }
 
 class LikesListener(

@@ -1,4 +1,4 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
+package com.github.insanusmokrassar.AutoPostBotLikesPlugin.old.database
 
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import kotlinx.coroutines.experimental.channels.BroadcastChannel

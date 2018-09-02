@@ -1,8 +1,8 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
+package com.github.insanusmokrassar.AutoPostBotLikesPlugin.old.listeners
 
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.LikePluginConfig
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.old.LikePluginConfig
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.old.database.LikesPluginLikesTable
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.old.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.*
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
@@ -60,9 +60,6 @@ class RatingChangedListener(
             listOfNotNull(
                 createLikeButton(
                     likesPluginLikesTable.postLikes(messageId)
-                ),
-                createDislikeButton(
-                    likesPluginLikesTable.postDislikes(messageId)
                 )
             ).toTypedArray()
         )
@@ -72,13 +69,5 @@ class RatingChangedListener(
         return createLikeButton(
             "${likePluginConfig.likeText} $count"
         )
-    }
-
-    private fun createDislikeButton(count: Int): InlineKeyboardButton? {
-        return likePluginConfig.dislikeText ?.let {
-            createDislikeButton(
-                "$it $count"
-            )
-        }
     }
 }

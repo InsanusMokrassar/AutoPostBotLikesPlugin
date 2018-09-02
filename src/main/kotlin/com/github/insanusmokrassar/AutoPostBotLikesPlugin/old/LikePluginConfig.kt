@@ -1,4 +1,4 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin
+package com.github.insanusmokrassar.AutoPostBotLikesPlugin.old
 
 class LikePluginConfig(
     val likeText: String = "",

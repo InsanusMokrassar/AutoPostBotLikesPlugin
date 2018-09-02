@@ -1,6 +1,6 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
+package com.github.insanusmokrassar.AutoPostBotLikesPlugin.old.listeners
 
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.old.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostIdListPostMessagesTelegramMessages
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.executeAsync
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribeChecking

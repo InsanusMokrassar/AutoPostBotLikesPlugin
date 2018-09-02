@@ -1,4 +1,4 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
+package com.github.insanusmokrassar.AutoPostBotLikesPlugin.old.listeners
 
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
 import com.github.insanusmokrassar.AutoPostTelegramBot.realCallbackQueryListener
