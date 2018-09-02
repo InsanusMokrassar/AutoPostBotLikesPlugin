@@ -51,7 +51,8 @@ class RatingChangedListener(
                 messageId
             ).replyMarkup(
                 createMarkup(messageId)
-            )
+            ),
+            retries = null
         )
     }
 
