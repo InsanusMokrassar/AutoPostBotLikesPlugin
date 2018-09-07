@@ -5,7 +5,7 @@
 
     <groupId>com.github.insanusmokrassar</groupId>
     <artifactId>AutoPostBotLikesPlugin</artifactId>
-    <version>0.3</version>
+    <version>0.4</version>
     <packaging>jar</packaging>
 
     <name>${project.artifactId}</name>
@@ -35,7 +35,6 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kotlin.version>1.2.61</kotlin.version>
-        <kotlin.coroutines.version>0.24.0</kotlin.coroutines.version>
         <dokka.version>0.9.16</dokka.version>
         <gpg.version>1.6</gpg.version>
         <assembly.version>2.6</assembly.version>
@@ -190,39 +189,11 @@
             <artifactId>junit</artifactId>
             <version>4.12</version>
         </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib</artifactId>
-            <version>${kotlin.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlinx</groupId>
-            <artifactId>kotlinx-coroutines-core</artifactId>
-            <version>${kotlin.coroutines.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-test-junit</artifactId>
-            <version>${kotlin.version}</version>
-            <scope>test</scope>
-        </dependency>
 
         <dependency>
             <groupId>com.github.insanusmokrassar</groupId>
             <artifactId>AutoPostTelegramBot</artifactId>
-            <version>0.4.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.insanusmokrassar</groupId>
-            <artifactId>IObjectK</artifactId>
-            <version>1.11.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.insanusmokrassar</groupId>
-            <artifactId>IObjectKRealisations</artifactId>
-            <version>1.11.2</version>
+            <version>0.4.1</version>
         </dependency>
     </dependencies>
 </project>
