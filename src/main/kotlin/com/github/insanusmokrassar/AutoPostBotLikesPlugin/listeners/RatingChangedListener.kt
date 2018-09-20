@@ -1,8 +1,8 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.LikePluginConfig
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.LikePluginConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.*
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
@@ -18,17 +18,10 @@ class RatingChangedListener(
     private val likePluginConfig: LikePluginConfig
 ) {
     init {
-        likesPluginLikesTable.likesChannel.subscribeChecking {
+        likesPluginLikesTable.messageButtonsUpdatedChannel.subscribeChecking {
             val bot = botWR.get() ?: return@subscribeChecking false
 
-            updateMessage(bot, it.first)
-
-            true
-        }
-        likesPluginLikesTable.dislikesChannel.subscribeChecking {
-            val bot = botWR.get() ?: return@subscribeChecking false
-
-            updateMessage(bot, it.first)
+            updateMessage(bot, it)
 
             true
         }
@@ -57,29 +50,21 @@ class RatingChangedListener(
     }
 
     private fun createMarkup(messageId: Int): InlineKeyboardMarkup {
+        val buttonMarks = likesPluginLikesTable.getMessageButtonMarks(messageId)
         return InlineKeyboardMarkup(
-            listOfNotNull(
-                createLikeButton(
-                    likesPluginLikesTable.postLikes(messageId)
-                ),
-                createDislikeButton(
-                    likesPluginLikesTable.postDislikes(messageId)
-                )
-            ).toTypedArray()
+            *likePluginConfig.adaptedGroups.map {
+                group ->
+                group.items.mapNotNull {
+                    button ->
+                    val mark = buttonMarks.firstOrNull { it.buttonId == button.id }
+                    mark ?.let {
+                        createMarkButton(
+                            button,
+                            mark
+                        )
+                    }
+                }.toTypedArray()
+            }.toTypedArray()
         )
-    }
-
-    private fun createLikeButton(count: Int): InlineKeyboardButton {
-        return createLikeButton(
-            "${likePluginConfig.likeText} $count"
-        )
-    }
-
-    private fun createDislikeButton(count: Int): InlineKeyboardButton? {
-        return likePluginConfig.dislikeText ?.let {
-            createDislikeButton(
-                "$it $count"
-            )
-        }
     }
 }

@@ -1,11 +1,16 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
 
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.Mark
+import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.debounce
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import kotlinx.coroutines.experimental.channels.BroadcastChannel
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.launch
 import org.h2.jdbc.JdbcSQLException
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.statements.InsertStatement
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 
@@ -19,13 +24,20 @@ private const val resultColumnName = "result"
 class LikesPluginLikesTable(
     private val likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable
 ) : Table() {
-    val likesChannel = BroadcastChannel<MessageIdUserId>(countOfSubscriptions)
-    val dislikesChannel = BroadcastChannel<MessageIdUserId>(countOfSubscriptions)
-    val ratingsChannel = BroadcastChannel<MessageIdRatingPair>(countOfSubscriptions)
+    val messageButtonsUpdatedChannel = BroadcastChannel<Int>(countOfSubscriptions)
 
-    private val userId = long("userId").primaryKey()
-    private val messageId = integer("messageId").primaryKey()
-    private val like = bool("like").default(false)
+    private val userId = long("userId")
+    private val messageId = integer("messageId")
+    private val buttonId = text("buttonId")
+
+    private val ResultRow.buttonId: String
+        get() = get(this@LikesPluginLikesTable.buttonId)
+
+    private val ResultRow.messageId: Int
+        get() = get(this@LikesPluginLikesTable.messageId)
+
+    private val ResultRow.userId: Long
+        get() = get(this@LikesPluginLikesTable.userId)
 
     init {
         transaction {
@@ -40,132 +52,193 @@ class LikesPluginLikesTable(
         }
     }
 
-    fun userLikePost(userId: Long, messageId: Int) {
-        userLike(userId, messageId, true)
-
-        launch {
-            likesChannel.send(messageId to userId)
-        }
-    }
-
-    fun userDislikePost(userId: Long, messageId: Int) {
-        userLike(userId, messageId, false)
-
-        launch {
-            dislikesChannel.send(messageId to userId)
-        }
-    }
-
-    fun postLikes(messageId: Int): Int = postLikeCount(messageId, true)
-
-    fun postDislikes(messageId: Int): Int = postLikeCount(messageId, false)
-
-    fun getPostRating(messageId: Int): Int {
+    operator fun contains(mark: Mark): Boolean {
         return transaction {
-            try {
-                exec("SELECT (likes-dislikes) as $resultColumnName FROM " +
-                    "(SELECT count(*) as likes FROM ${nameInDatabaseCase()} WHERE ${this@LikesPluginLikesTable.messageId.name}=$messageId AND \"${like.name}\"=${like.columnType.valueToString(true)}), " +
-                    "(SELECT count(*) as dislikes FROM ${nameInDatabaseCase()} WHERE ${this@LikesPluginLikesTable.messageId.name}=$messageId AND \"${like.name}\"=${like.columnType.valueToString(false)});") {
-                    if (it.first()) {
-                        it.getInt(it.findColumn(resultColumnName))
-                    } else {
-                        0
-                    }
-                } ?: 0
-            } catch (e: JdbcSQLException) {
-                select {
-                    createChooser(messageId, like = true)
-                }.count() - select {
-                    createChooser(messageId, like = false)
-                }.count()
+            select {
+                makeSelectStatement(mark)
+            }.count() > 0
+        }
+    }
+
+    private fun makeSelectStatement(mark: Mark): Op<Boolean> {
+        return userId.eq(
+            mark.userId
+        ).and(
+            messageId.eq(
+                mark.messageId
+            )
+        ).and(
+            buttonId.eq(
+                mark.buttonId
+            )
+        )
+    }
+
+    private fun makeInsertStatement(insertStatement: InsertStatement<Number>, mark: Mark) {
+        insertStatement[userId] = mark.userId
+        insertStatement[messageId] = mark.messageId
+        insertStatement[buttonId] = mark.buttonId
+    }
+
+    private fun insertMark(mark: Mark): Boolean {
+        return transaction {
+            if (contains(mark)) {
+                false
+            } else {
+                insert {
+                    makeInsertStatement(it, mark)
+                }[userId] != null
             }
-        }
-    }
-
-    /**
-     * @param min Included. If null - always true
-     * @param max Included. If null - always true
-     *
-     * @return Pairs with messageId to Rate
-     */
-    fun getRateRange(
-        min: Int? = null,
-        max: Int? = null,
-        from: DateTime = DateTime(0L),
-        to: DateTime = DateTime.now()
-    ): List<MessageIdRatingPair> {
-        return likesPluginRegisteredLikesMessagesTable.getBetweenDates(from, to).map {
-            it.first to getPostRating(it.first)
-        }.sortedByDescending {
-            it.second
-        }.filter {
-            pair ->
-            min ?.let { it <= pair.second } != false && max ?.let { pair.second <= it } != false
-        }
-    }
-
-    private fun postLikeCount(messageId: Int, like: Boolean): Int = transaction {
-        select {
-            this@LikesPluginLikesTable.messageId.eq(messageId).and(this@LikesPluginLikesTable.like.eq(like))
-        }.count()
-    }
-
-    private fun createChooser(messageId: Int, userId: Long? = null, like: Boolean? = null): Op<Boolean> {
-        return this@LikesPluginLikesTable.messageId.eq(messageId).let {
-            userId ?.let {
-                userId ->
-                it.and(this@LikesPluginLikesTable.userId.eq(userId))
-            } ?: it
-        }.let {
-            like ?. let {
-                like ->
-                it.and(this@LikesPluginLikesTable.like.eq(like))
-            } ?: it
-        }
-    }
-
-    private fun userLike(userId: Long, messageId: Int, like: Boolean) {
-        val chooser = createChooser(messageId, userId)
-        transaction {
-            val record = select {
-                chooser
-            }.firstOrNull()
-            record ?.let {
-                if (it[this@LikesPluginLikesTable.like] == like) {
-                    deleteWhere { chooser }
-                } else {
-                    update(
-                        {
-                            chooser
-                        }
-                    ) {
-                        it[this@LikesPluginLikesTable.like] = like
-                    }
+        }.also {
+            if (it) {
+                launch {
+                    messageButtonsUpdatedChannel.send(mark.messageId)
                 }
-            } ?:let {
-                addUser(userId, messageId, like)
             }
-            launch {
-                ratingsChannel.send(
-                    MessageIdRatingPair(messageId, getPostRating(messageId))
+        }
+    }
+
+    private fun deleteMark(mark: Mark): Boolean {
+        return transaction {
+            deleteWhere {
+                makeSelectStatement(mark)
+            } > 0
+        }.also {
+            if (it) {
+                launch {
+                    messageButtonsUpdatedChannel.send(mark.messageId)
+                }
+            }
+        }
+    }
+
+    private fun deleteUserMarksOnMessage(messageId: Int, userId: Long, buttonIds: List<String>?): Int {
+        return transaction {
+            deleteWhere {
+                this@LikesPluginLikesTable.userId.eq(
+                    userId
+                ).and(
+                    this@LikesPluginLikesTable.messageId.eq(
+                        messageId
+                    )
+                ).let {
+                    buttonIds ?.let {
+                        buttonIds ->
+                        it.and(
+                            buttonId.inList(buttonIds)
+                        )
+                    } ?: it
+                }
+            }.also {
+                launch {
+                    messageButtonsUpdatedChannel.send(messageId)
+                }
+            }
+        }
+    }
+
+    fun insertOrDeleteMark(mark: Mark): Boolean {
+        return transaction {
+            if (!insertMark(mark)) {
+                deleteMark(mark)
+            } else {
+                true
+            }
+        }
+    }
+
+    fun insertMarkDeleteOther(mark: Mark, otherIds: List<String>): Boolean {
+        return transaction {
+            val insertAfterClean = mark in this@LikesPluginLikesTable
+
+            deleteUserMarksOnMessage(
+                mark.messageId,
+                mark.userId,
+                otherIds
+            )
+
+            if (insertAfterClean) {
+                insertMark(mark)
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    fun userMarksOnMessage(messageId: Int, userId: Long): List<Mark> {
+        return transaction {
+            select {
+                this@LikesPluginLikesTable.messageId.eq(
+                    messageId
+                ).and(
+                    this@LikesPluginLikesTable.userId.eq(
+                        userId
+                    )
+                )
+            }.map {
+                Mark(
+                    it.userId,
+                    it.messageId,
+                    it.buttonId
                 )
             }
         }
     }
 
-    private fun addUser(userId: Long, messageId: Int, like: Boolean) {
-        transaction {
-            insert {
-                it[this@LikesPluginLikesTable.messageId] = messageId
-                it[this@LikesPluginLikesTable.userId] = userId
-                it[this@LikesPluginLikesTable.like] = like
+    fun marksOfMessage(messageId: Int): List<Mark> {
+        return transaction {
+            select {
+                this@LikesPluginLikesTable.messageId.eq(messageId)
+            }.map {
+                Mark(
+                    it.userId,
+                    it.messageId,
+                    it.buttonId
+                )
             }
         }
     }
 
-    internal fun clearPostMarks(messageId: Int) {
-        transaction {
-            deleteWhere { this@LikesPluginLikesTable.messageId.eq(messageId) }
+    fun getMessageButtonMark(messageId: Int, buttonId: String): ButtonMark {
+        return transaction {
+            select {
+                this@LikesPluginLikesTable.messageId.eq(
+                    messageId
+                ).and(
+                    this@LikesPluginLikesTable.buttonId.eq(buttonId)
+                )
+            }.count().let {
+                ButtonMark(
+                    messageId,
+                    buttonId,
+                    it
+                )
+            }
+        }
+    }
+
+    fun getMessageButtonMarks(messageId: Int): List<ButtonMark> {
+        val mapOfButtonsCount = HashMap<String, Int>()
+
+        return transaction {
+            select {
+                this@LikesPluginLikesTable.messageId.eq(
+                    messageId
+                )
+            }.forEach {
+                mapOfButtonsCount[it.buttonId] ?.plus(1) ?: it.also {
+                    mapOfButtonsCount[it.buttonId] = 1
+                }
+            }
+            mapOfButtonsCount.map {
+                (buttonId, count) ->
+                ButtonMark(
+                    messageId,
+                    buttonId,
+                    count
+                )
+            }
         }
     }
 }

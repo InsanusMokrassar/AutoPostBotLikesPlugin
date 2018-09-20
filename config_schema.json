@@ -9,6 +9,17 @@
     }
   },
   "definitions": {
+    "buttonAnswer": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "isAlert": {
+          "type": "boolean"
+        }
+      }
+    },
     "button": {
       "$id": "button",
       "title": "button",
@@ -31,6 +42,12 @@
           "type": "string",
           "title": "format of text",
           "description": "format of text for button.\nVariables: starts with `$`\nAvailable variables:\n$text\n$count"
+        },
+        "positiveAnswer": {
+          "$ref": "#/definitions/buttonAnswer"
+        },
+        "negativeAnswer": {
+          "$ref": "#/definitions/buttonAnswer"
         }
       },
       "required": [

@@ -3,6 +3,7 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners.*
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.LikePluginConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.FinalConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.*
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostPublisher
@@ -34,11 +35,6 @@ class LikesPlugin(
             botWR
         )
 
-        LikesListener(baseConfig.targetChatId, likesPluginLikesTable, config.likeAnswer, botWR)
-        config.dislikeAnswer ?.let {
-            DislikesListener(baseConfig.targetChatId, likesPluginLikesTable, it, botWR)
-        }
-
         RatingChangedListener(
             likesPluginLikesTable,
             likesPluginRegisteredLikesMessagesTable,
@@ -46,5 +42,19 @@ class LikesPlugin(
             baseConfig.targetChatId,
             config
         )
+
+        config.adaptedGroups.map {
+            group ->
+            group.items.map {
+                button ->
+                MarkListener(
+                    baseConfig.targetChatId,
+                    likesPluginLikesTable,
+                    button,
+                    botWR,
+                    group.other(button).map { it.id }
+                )
+            }
+        }
     }
 }
