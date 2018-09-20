@@ -1,0 +1,72 @@
+{
+  "type": "object",
+  "properties": {
+    "buttons": {
+      "$ref": "#/definitions/buttons"
+    },
+    "groups": {
+      "$ref": "#/definitions/groups"
+    }
+  },
+  "definitions": {
+    "button": {
+      "$id": "button",
+      "title": "button",
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "title": "text",
+          "description": "Text of future button",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "id": {
+          "type": "string",
+          "title": "identifier",
+          "description": "identifier of button in system",
+          "minLength": 1
+        },
+        "format": {
+          "type": "string",
+          "title": "format of text",
+          "description": "format of text for button.\nVariables: starts with `$`\nAvailable variables:\n$text\n$count"
+        }
+      },
+      "required": [
+        "text",
+        "id"
+      ]
+    },
+    "buttons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/button"
+      }
+    },
+    "groupItem": {
+      "description": "id of element",
+      "type": "string"
+    },
+    "group": {
+      "type": "object",
+      "properties": {
+        "radio": {
+          "type": "boolean"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/groupItem"
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/group"
+      }
+    }
+  }
+}
