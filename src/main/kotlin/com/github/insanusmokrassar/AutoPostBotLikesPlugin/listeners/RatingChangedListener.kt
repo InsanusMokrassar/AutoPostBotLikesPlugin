@@ -2,6 +2,7 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.LikePluginConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.executeAsync
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribeChecking
@@ -44,25 +45,28 @@ class RatingChangedListener(
                 messageId
             ).replyMarkup(
                 createMarkup(messageId)
-            ),
-            retries = 3
+            )
         )
     }
 
     private fun createMarkup(messageId: Int): InlineKeyboardMarkup {
-        val buttonMarks = likesPluginLikesTable.getMessageButtonMarks(messageId)
+        val buttonMarks = likesPluginLikesTable.getMessageButtonMarks(messageId).map {
+            it.buttonId to it
+        }.toMap()
         return InlineKeyboardMarkup(
             *likePluginConfig.adaptedGroups.map {
                 group ->
-                group.items.mapNotNull {
+                group.items.map {
                     button ->
-                    val mark = buttonMarks.firstOrNull { it.buttonId == button.id }
-                    mark ?.let {
-                        createMarkButton(
-                            button,
-                            mark
-                        )
-                    }
+                    val mark = buttonMarks[button.id] ?: ButtonMark(
+                        messageId,
+                        button.id,
+                        0
+                    )
+                    createMarkButton(
+                        button,
+                        mark
+                    )
                 }.toTypedArray()
             }.toTypedArray()
         )

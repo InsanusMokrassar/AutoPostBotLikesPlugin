@@ -7,7 +7,7 @@ import kotlinx.coroutines.experimental.channels.BroadcastChannel
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.statements.InsertStatement
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.transaction
 
 private const val countOfSubscriptions = 256
@@ -17,6 +17,7 @@ class LikesPluginLikesTable(
 ) : Table() {
     val messageButtonsUpdatedChannel = BroadcastChannel<Int>(countOfSubscriptions)
 
+    private val id = integer("id").primaryKey().autoIncrement()
     private val userId = long("userId")
     private val messageId = integer("messageId")
     private val buttonId = text("buttonId")
@@ -65,20 +66,16 @@ class LikesPluginLikesTable(
         )
     }
 
-    private fun makeInsertStatement(insertStatement: InsertStatement<Number>, mark: Mark) {
-        insertStatement[userId] = mark.userId
-        insertStatement[messageId] = mark.messageId
-        insertStatement[buttonId] = mark.buttonId
-    }
-
     private fun insertMark(mark: Mark): Boolean {
         return transaction {
             if (contains(mark)) {
                 false
             } else {
                 insert {
-                    makeInsertStatement(it, mark)
-                }[userId] != null
+                    it[userId] = mark.userId
+                    it[messageId] = mark.messageId
+                    it[buttonId] = mark.buttonId
+                }[id] != null
             }
         }.also {
             if (it) {
@@ -105,26 +102,24 @@ class LikesPluginLikesTable(
 
     private fun deleteUserMarksOnMessage(messageId: Int, userId: Long, buttonIds: List<String>?): Int {
         return transaction {
-            deleteWhere {
-                this@LikesPluginLikesTable.userId.eq(
-                    userId
-                ).and(
-                    this@LikesPluginLikesTable.messageId.eq(
-                        messageId
+            this@LikesPluginLikesTable.userId.eq(
+                userId
+            ).and(
+                this@LikesPluginLikesTable.messageId.eq(
+                    messageId
+                )
+            ).let {
+                buttonIds ?.let {
+                    buttonIds ->
+                    it.and(
+                        buttonId.inList(buttonIds)
                     )
-                ).let {
-                    buttonIds ?.let {
-                        buttonIds ->
-                        it.and(
-                            buttonId.inList(buttonIds)
-                        )
-                    } ?: it
                 }
-            }.also {
-                launch {
-                    messageButtonsUpdatedChannel.send(messageId)
+            } ?.let {
+                deleteWhere {
+                    it
                 }
-            }
+            } ?: 0
         }
     }
 
@@ -140,19 +135,26 @@ class LikesPluginLikesTable(
 
     fun insertMarkDeleteOther(mark: Mark, otherIds: List<String>): Boolean {
         return transaction {
-            val insertAfterClean = mark in this@LikesPluginLikesTable
+            val insertAfterClean = mark !in this@LikesPluginLikesTable
 
-            deleteUserMarksOnMessage(
+            val haveDeleted = deleteUserMarksOnMessage(
                 mark.messageId,
                 mark.userId,
                 otherIds
-            )
+            ) > 0
 
-            if (insertAfterClean) {
+            (if (insertAfterClean) {
                 insertMark(mark)
                 true
             } else {
+                deleteMark(mark)
                 false
+            }).also {
+                if (it || haveDeleted) {
+                    launch {
+                        messageButtonsUpdatedChannel.send(mark.messageId)
+                    }
+                }
             }
         }
     }
@@ -219,9 +221,7 @@ class LikesPluginLikesTable(
                     messageId
                 )
             }.forEach {
-                mapOfButtonsCount[it.buttonId] ?.plus(1) ?: it.also {
-                    mapOfButtonsCount[it.buttonId] = 1
-                }
+                mapOfButtonsCount[it.buttonId] = mapOfButtonsCount[it.buttonId] ?.plus(1) ?: 1
             }
             mapOfButtonsCount.map {
                 (buttonId, count) ->

@@ -2,7 +2,7 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config
 
 data class LikePluginConfig(
     val buttons: List<ButtonConfig> = emptyList(),
-    val groups: List<GroupConfig> = emptyList(),
+    private val groups: List<GroupConfig> = emptyList(),
     val separateAlways: Boolean = false,
     val separatedText: String = "Like? :)"
 ) {

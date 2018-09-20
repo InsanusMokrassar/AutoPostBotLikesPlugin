@@ -6,6 +6,12 @@
     },
     "groups": {
       "$ref": "#/definitions/groups"
+    },
+    "separateAlways": {
+      "type": "boolean"
+    },
+    "separatedText": {
+      "type": "string"
     }
   },
   "definitions": {
