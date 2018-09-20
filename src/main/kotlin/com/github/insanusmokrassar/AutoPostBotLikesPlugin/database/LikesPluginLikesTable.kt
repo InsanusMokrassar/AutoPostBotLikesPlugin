@@ -2,27 +2,18 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
 
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.Mark
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.debounce
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import kotlinx.coroutines.experimental.channels.BroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.launch
-import org.h2.jdbc.JdbcSQLException
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.statements.InsertStatement
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.joda.time.DateTime
-
-typealias MessageIdRatingPair = Pair<Int, Int>
-typealias MessageIdUserId = Pair<Int, Long>
 
 private const val countOfSubscriptions = 256
 
-private const val resultColumnName = "result"
-
 class LikesPluginLikesTable(
-    private val likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable
+    likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable
 ) : Table() {
     val messageButtonsUpdatedChannel = BroadcastChannel<Int>(countOfSubscriptions)
 
@@ -209,10 +200,11 @@ class LikesPluginLikesTable(
                     this@LikesPluginLikesTable.buttonId.eq(buttonId)
                 )
             }.count().let {
+                count ->
                 ButtonMark(
                     messageId,
                     buttonId,
-                    it
+                    count
                 )
             }
         }

@@ -3,9 +3,9 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.LikePluginConfig
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.*
+import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.executeAsync
+import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribeChecking
 import com.pengrad.telegrambot.TelegramBot
-import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.request.EditMessageReplyMarkup
 import java.lang.ref.WeakReference

@@ -5,9 +5,9 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRe
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.LikePluginConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.FinalConfig
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.*
+import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.Plugin
+import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.PluginManager
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostPublisher
-import com.github.insanusmokrassar.AutoPostTelegramBot.realCallbackQueryListener
 import com.github.insanusmokrassar.IObjectK.interfaces.IObject
 import com.github.insanusmokrassar.IObjectKRealisations.toObject
 import com.pengrad.telegrambot.TelegramBot
