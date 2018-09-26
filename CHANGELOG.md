@@ -12,3 +12,7 @@
 ## 0.7
 
 * `AutoPostTelegramBot` version `0.4.3` -> `0.4.4`
+
+## 0.8
+
+* `AutoPostTelegramBot` version `0.4.4` -> `0.4.5`
