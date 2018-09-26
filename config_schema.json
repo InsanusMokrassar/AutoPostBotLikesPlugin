@@ -5,26 +5,39 @@
       "$ref": "#/definitions/buttons"
     },
     "groups": {
-      "$ref": "#/definitions/groups"
+      "$ref": "#/definitions/groups",
+      "default": "Radio group with all buttons"
     },
     "separateAlways": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Any media group will have additional message with text from `separatedText`, but you can choose to use this message for each post",
+      "default": false
     },
     "separatedText": {
-      "type": "string"
+      "type": "string",
+      "description": "Text of separated message (look at the `separateAlways`)"
     }
   },
+  "required": [
+    "buttons"
+  ],
   "definitions": {
     "buttonAnswer": {
       "type": "object",
       "properties": {
         "text": {
-          "type": "string"
+          "type": "string",
+          "description": "Represent text which will be shown to user"
         },
         "isAlert": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "`true` if you wish to show answer to user as alert",
+          "default": false
         }
-      }
+      },
+      "required": [
+        "text"
+      ]
     },
     "button": {
       "$id": "button",
@@ -47,13 +60,18 @@
         "format": {
           "type": "string",
           "title": "format of text",
-          "description": "format of text for button.\nVariables: starts with `$`\nAvailable variables:\n$text\n$count"
+          "description": "format of text for button.\nVariables: starts with `$`\nAvailable variables:\n$text\n$count",
+          "default": "$text $count"
         },
         "positiveAnswer": {
-          "$ref": "#/definitions/buttonAnswer"
+          "$ref": "#/definitions/buttonAnswer",
+          "description": "Represent answer which will be shown to user when he will mark post using this button",
+          "default": null
         },
         "negativeAnswer": {
-          "$ref": "#/definitions/buttonAnswer"
+          "$ref": "#/definitions/buttonAnswer",
+          "description": "Represent answer which will be shown to user when he will unmark post using this button",
+          "default": null
         }
       },
       "required": [
@@ -68,17 +86,20 @@
       }
     },
     "groupItem": {
-      "description": "id of element",
+      "description": "id of button element",
       "type": "string"
     },
     "group": {
       "type": "object",
       "properties": {
         "radio": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "`true` if you want to prevent mark of different buttons by one user in one time in this group",
+          "default": true
         },
         "items": {
           "type": "array",
+          "description": "For each element of group will be tried to find some element in buttons array",
           "items": {
             "$ref": "#/definitions/groupItem"
           }
