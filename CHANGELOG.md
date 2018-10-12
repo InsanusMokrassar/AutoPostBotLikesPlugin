@@ -16,3 +16,8 @@
 ## 0.8
 
 * `AutoPostTelegramBot` version `0.4.4` -> `0.4.5`
+
+### 0.8.1
+
+* Add retries count for editing messages and
+applying new likes
