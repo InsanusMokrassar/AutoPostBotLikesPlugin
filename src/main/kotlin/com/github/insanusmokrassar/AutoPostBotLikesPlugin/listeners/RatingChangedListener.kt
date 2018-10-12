@@ -4,6 +4,7 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLi
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.LikePluginConfig
+import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.executeAsync
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribeChecking
 import com.pengrad.telegrambot.TelegramBot
@@ -45,7 +46,12 @@ class RatingChangedListener(
                 messageId
             ).replyMarkup(
                 createMarkup(messageId)
-            )
+            ),
+            onFailure = {
+                _, ioException ->
+                commonLogger.warning("Can't edit message $messageId for applying: ${ioException ?.message ?: "unknown problem"}")
+            },
+            retries = 3
         )
     }
 
