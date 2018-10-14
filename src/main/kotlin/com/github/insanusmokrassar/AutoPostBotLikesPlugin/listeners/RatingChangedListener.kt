@@ -9,6 +9,7 @@ import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.*
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.request.EditMessageReplyMarkup
+import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.channels.*
 import java.lang.ref.WeakReference
 
@@ -25,12 +26,17 @@ class RatingChangedListener(
         val channels = HashMap<Int, BroadcastChannel<Int>>()
 
         for (msg in channel) {
-            (channels[msg] ?: BroadcastChannel<Int>(Channel.CONFLATED).also {
+            (try {
+                channels[msg] ?.send(msg)
+            } catch (e: CancellationException) {
+                null
+            }) ?: BroadcastChannel<Int>(Channel.CONFLATED).also {
                 channels[msg] = it
                 it.debounce(
                     debounceDelay
                 ).also {
                     innerBroadcast ->
+                    var hasSent = true
                     innerBroadcast.subscribe {
                         msg ->
                         botWR.get() ?.executeAsync(
@@ -46,10 +52,14 @@ class RatingChangedListener(
                             },
                             retries = 3
                         ) ?: channel.cancel()
+                        hasSent = !hasSent
+                        if (hasSent) {
+                            innerBroadcast.cancel()
+                        }
                     }
                     innerBroadcast.send(msg)
                 }
-            }).send(msg)
+            }
         }
     }
 
