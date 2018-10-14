@@ -5,54 +5,65 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRe
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.LikePluginConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.executeAsync
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribeChecking
+import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.*
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.request.EditMessageReplyMarkup
+import kotlinx.coroutines.experimental.channels.*
 import java.lang.ref.WeakReference
 
 class RatingChangedListener(
     private val likesPluginLikesTable: LikesPluginLikesTable,
     private val likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
-    botWR: WeakReference<TelegramBot>,
+    private val botWR: WeakReference<TelegramBot>,
     private val chatId: Long,
-    private val likePluginConfig: LikePluginConfig
+    private val likePluginConfig: LikePluginConfig,
+    private val debounceDelay: Long = 1000
 ) {
-    init {
-        likesPluginLikesTable.messageButtonsUpdatedChannel.subscribeChecking {
-            val bot = botWR.get() ?: return@subscribeChecking false
 
-            updateMessage(bot, it)
+    private val updateActor = actor<Int> {
+        val channels = HashMap<Int, BroadcastChannel<Int>>()
 
-            true
-        }
-        likesPluginRegisteredLikesMessagesTable.messageIdAllocatedChannel.subscribeChecking {
-            val bot = botWR.get() ?: return@subscribeChecking false
-
-            updateMessage(bot, it)
-
-            true
+        for (msg in channel) {
+            (channels[msg] ?: BroadcastChannel<Int>(Channel.CONFLATED).also {
+                channels[msg] = it
+                it.debounce(
+                    debounceDelay
+                ).also {
+                    innerBroadcast ->
+                    innerBroadcast.subscribe {
+                        msg ->
+                        botWR.get() ?.executeAsync(
+                            EditMessageReplyMarkup(
+                                chatId,
+                                msg
+                            ).replyMarkup(
+                                createMarkup(msg)
+                            ),
+                            onFailure = {
+                                _, ioException ->
+                                commonLogger.warning("Can't edit message $msg for applying: ${ioException ?.message ?: "unknown problem"}")
+                            },
+                            retries = 3
+                        ) ?: channel.cancel()
+                    }
+                    innerBroadcast.send(msg)
+                }
+            }).send(msg)
         }
     }
 
-    private fun updateMessage(
-        bot: TelegramBot,
-        messageId: Int
-    ) {
-        bot.executeAsync(
-            EditMessageReplyMarkup(
-                chatId,
-                messageId
-            ).replyMarkup(
-                createMarkup(messageId)
-            ),
-            onFailure = {
-                _, ioException ->
-                commonLogger.warning("Can't edit message $messageId for applying: ${ioException ?.message ?: "unknown problem"}")
-            },
-            retries = 3
-        )
+    init {
+        likesPluginLikesTable.messageButtonsUpdatedChannel.subscribe {
+            updateMessage(it)
+        }
+        likesPluginRegisteredLikesMessagesTable.messageIdAllocatedChannel.subscribe {
+            updateMessage(it)
+        }
+    }
+
+    private suspend fun updateMessage(messageId: Int) {
+        updateActor.send(messageId)
     }
 
     private fun createMarkup(messageId: Int): InlineKeyboardMarkup {
