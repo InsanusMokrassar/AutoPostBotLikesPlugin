@@ -4,6 +4,7 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLi
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.LikePluginConfig
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.debounceByValue
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.*
 import com.pengrad.telegrambot.TelegramBot
@@ -21,50 +22,10 @@ class RatingChangedListener(
     private val likePluginConfig: LikePluginConfig
 ) {
     private val debounceDelay: Long = likePluginConfig.debounceDelay
-
-    private val updateActor = actor<Int> {
-        val channels = HashMap<Int, BroadcastChannel<Int>>()
-
-        for (msg in channel) {
-            (try {
-                channels[msg] ?.send(msg)
-            } catch (e: CancellationException) {
-                null
-            }) ?: BroadcastChannel<Int>(Channel.CONFLATED).also {
-                channels[msg] = it
-                it.debounce(
-                    debounceDelay
-                ).also {
-                    innerBroadcast ->
-                    var hasSent = true
-                    innerBroadcast.subscribe {
-                        msg ->
-                        botWR.get() ?.executeAsync(
-                            EditMessageReplyMarkup(
-                                chatId,
-                                msg
-                            ).replyMarkup(
-                                createMarkup(msg)
-                            ),
-                            onFailure = {
-                                _, ioException ->
-                                commonLogger.warning("Can't edit message $msg for applying: ${ioException ?.message ?: "unknown problem"}")
-                            },
-                            retries = 3
-                        ) ?: channel.cancel()
-                        hasSent = !hasSent
-                        if (hasSent) {
-                            innerBroadcast.cancel()
-                        }
-                    }
-                    innerBroadcast.send(msg)
-                }
-            }
-        }
-    }
+    private val retriesDelay = debounceDelay / 2
 
     init {
-        likesPluginLikesTable.messageButtonsUpdatedChannel.subscribe {
+        likesPluginLikesTable.messageButtonsUpdatedChannel.debounceByValue(debounceDelay).subscribe {
             updateMessage(it)
         }
         likesPluginRegisteredLikesMessagesTable.messageIdAllocatedChannel.subscribe {
@@ -72,8 +33,21 @@ class RatingChangedListener(
         }
     }
 
-    private suspend fun updateMessage(messageId: Int) {
-        updateActor.send(messageId)
+    private fun updateMessage(messageId: Int) {
+        botWR.get() ?.executeAsync(
+            EditMessageReplyMarkup(
+                chatId,
+                messageId
+            ).replyMarkup(
+                createMarkup(messageId)
+            ),
+            onFailure = {
+                _, ioException ->
+                commonLogger.warning("Can't edit message $messageId for applying: ${ioException ?.message ?: "unknown problem"}")
+            },
+            retries = 3,
+            retriesDelay = retriesDelay / 2
+        )
     }
 
     private fun createMarkup(messageId: Int): InlineKeyboardMarkup {
