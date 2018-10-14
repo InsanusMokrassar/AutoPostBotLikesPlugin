@@ -17,9 +17,9 @@ class RatingChangedListener(
     private val likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
     private val botWR: WeakReference<TelegramBot>,
     private val chatId: Long,
-    private val likePluginConfig: LikePluginConfig,
-    private val debounceDelay: Long = 1000
+    private val likePluginConfig: LikePluginConfig
 ) {
+    private val debounceDelay: Long = likePluginConfig.debounceDelay
 
     private val updateActor = actor<Int> {
         val channels = HashMap<Int, BroadcastChannel<Int>>()
