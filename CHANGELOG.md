@@ -21,3 +21,10 @@
 
 * Add retries count for editing messages and
 applying new likes
+
+### 0.8.2
+
+* `AutoPostTelegramBot` version `0.4.5` -> `0.5.0`
+* `RatingChangedListener` now work with debounce and
+update immediately only first received update per
+post

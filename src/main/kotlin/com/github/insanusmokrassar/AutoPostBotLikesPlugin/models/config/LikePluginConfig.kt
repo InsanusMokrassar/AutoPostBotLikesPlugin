@@ -4,7 +4,8 @@ data class LikePluginConfig(
     val buttons: List<ButtonConfig> = emptyList(),
     private val groups: List<GroupConfig> = emptyList(),
     val separateAlways: Boolean = false,
-    val separatedText: String = "Like? :)"
+    val separatedText: String = "Like? :)",
+    val debounceDelay: Long = 1000
 ) {
     private val realGroups: List<GroupConfig> by lazy {
         if (groups.isEmpty()) {
