@@ -21,3 +21,5 @@
 
 * Add retries count for editing messages and
 applying new likes
+
+### 0.8.2
