@@ -9,6 +9,7 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.joda.time.DateTime
 
 private const val countOfSubscriptions = 256
 
@@ -21,6 +22,9 @@ class LikesPluginLikesTable(
     private val userId = long("userId")
     private val messageId = integer("messageId")
     private val buttonId = text("buttonId")
+    private val dateTime = datetime("markDateTime").default(DateTime.now()).clientDefault {
+        DateTime.now()
+    }
 
     private val ResultRow.buttonId: String
         get() = get(this@LikesPluginLikesTable.buttonId)

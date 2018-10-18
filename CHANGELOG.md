@@ -28,3 +28,9 @@ applying new likes
 * `RatingChangedListener` now work with debounce and
 update immediately only first received update per
 post
+
+### 0.8.3
+
+* Now `LikesPluginLikesTable` have `DateTime` field
+(by default contains `now`). This field will be used
+for future updates
