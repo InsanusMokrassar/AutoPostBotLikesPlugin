@@ -4,6 +4,7 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLi
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.LikePluginConfig
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.FinalConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.Plugin
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.PluginManager
@@ -56,5 +57,15 @@ class LikesPlugin(
                 )
             }
         }
+
+        enableDetectLikesAttachmentMessages(
+            AdminsHolder(
+                botWR,
+                baseConfig.targetChatId
+            ),
+            baseConfig.targetChatId,
+            likesPluginRegisteredLikesMessagesTable,
+            botWR
+        )
     }
 }
