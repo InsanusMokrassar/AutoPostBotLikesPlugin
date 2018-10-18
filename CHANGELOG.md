@@ -34,3 +34,6 @@ post
 * Now `LikesPluginLikesTable` have `DateTime` field
 (by default contains `now`). This field will be used
 for future updates
+* Was added `/attachTargetLike` command and opportunity
+to get help by forwarding message from target channel
+to bot about enabling of attachment of likes
