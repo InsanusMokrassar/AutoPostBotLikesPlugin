@@ -37,3 +37,7 @@ for future updates
 * Was added `/attachTargetLike` command and opportunity
 to get help by forwarding message from target channel
 to bot about enabling of attachment of likes
+
+### 0.8.4
+
+Now plugin always must receive `params` object
