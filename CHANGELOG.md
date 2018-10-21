@@ -28,3 +28,12 @@ applying new likes
 * `RatingChangedListener` now work with debounce and
 update immediately only first received update per
 post
+
+### 0.8.3
+
+* Now `LikesPluginLikesTable` have `DateTime` field
+(by default contains `now`). This field will be used
+for future updates
+* Was added `/attachTargetLike` command and opportunity
+to get help by forwarding message from target channel
+to bot about enabling of attachment of likes
