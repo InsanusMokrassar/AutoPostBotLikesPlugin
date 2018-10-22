@@ -45,3 +45,4 @@ Now plugin always must receive `params` object
 ### 0.8.5
 
 * Fix of incorrect defaults for `LikesPluginLikesTable`
+* Return nullable (not required) parameter for plugin

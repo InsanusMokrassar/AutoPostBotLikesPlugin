@@ -10,15 +10,14 @@ import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.Plugin
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.PluginManager
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostPublisher
 import com.github.insanusmokrassar.IObjectK.interfaces.IObject
-import com.github.insanusmokrassar.IObjectK.realisations.SimpleIObject
 import com.github.insanusmokrassar.IObjectKRealisations.toObject
 import com.pengrad.telegrambot.TelegramBot
 import java.lang.ref.WeakReference
 
 class LikesPlugin(
-    config: IObject<Any> = SimpleIObject()
+    config: IObject<Any>?
 ) : Plugin {
-    private val config = config.toObject(LikePluginConfig::class.java)
+    private val config = config ?.toObject(LikePluginConfig::class.java) ?: LikePluginConfig()
 
     val likesPluginRegisteredLikesMessagesTable = LikesPluginRegisteredLikesMessagesTable()
     val likesPluginLikesTable = LikesPluginLikesTable(likesPluginRegisteredLikesMessagesTable)
