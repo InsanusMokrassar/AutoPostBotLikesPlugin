@@ -31,7 +31,7 @@ internal fun enableDetectLikesAttachmentMessages(
                 botWR.get() ?.executeAsync(
                     SendMessage(
                         message.chat().id(),
-                        "Ok, send me `${commandTemplate.format()}`"
+                        "Ok, send me `${commandTemplate.format(message.forwardFromMessageId())}`"
                     )
                 )
             }
@@ -42,7 +42,23 @@ internal fun enableDetectLikesAttachmentMessages(
                 likesPluginRegisteredLikesMessagesTable.registerMessageId(
                     messageId,
                     DateTime.now()
-                )
+                ).also {
+                    if (it) {
+                        botWR.get() ?.executeAsync(
+                            SendMessage(
+                                message.chat().id(),
+                                "Likes was attached (can be showed with delay)"
+                            )
+                        )
+                    } else {
+                        botWR.get() ?.executeAsync(
+                            SendMessage(
+                                message.chat().id(),
+                                "Likes was not attached (can be already attached)"
+                            )
+                        )
+                    }
+                }
             }
         }
     }

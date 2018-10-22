@@ -47,3 +47,5 @@ Now plugin always must receive `params` object
 * Fix of incorrect defaults for `LikesPluginLikesTable`
 * Return nullable (not required) parameter for plugin
 * Update version of base bot
+
+### 0.8.6
