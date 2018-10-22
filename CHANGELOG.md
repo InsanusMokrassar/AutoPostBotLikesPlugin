@@ -43,3 +43,5 @@ to bot about enabling of attachment of likes
 Now plugin always must receive `params` object
 
 ### 0.8.5
+
+* Fix of incorrect defaults for `LikesPluginLikesTable`

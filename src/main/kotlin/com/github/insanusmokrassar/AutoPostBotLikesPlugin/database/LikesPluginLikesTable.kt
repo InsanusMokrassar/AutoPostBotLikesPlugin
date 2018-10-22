@@ -22,9 +22,7 @@ class LikesPluginLikesTable(
     private val userId = long("userId")
     private val messageId = integer("messageId")
     private val buttonId = text("buttonId")
-    private val dateTime = datetime("markDateTime").default(DateTime.now()).clientDefault {
-        DateTime.now()
-    }
+    private val dateTime = datetime("markDateTime").default(DateTime.now())
 
     private val ResultRow.buttonId: String
         get() = get(this@LikesPluginLikesTable.buttonId)
@@ -79,6 +77,7 @@ class LikesPluginLikesTable(
                     it[userId] = mark.userId
                     it[messageId] = mark.messageId
                     it[buttonId] = mark.buttonId
+                    it[dateTime] = DateTime.now()
                 }[id] != null
             }
         }.also {
