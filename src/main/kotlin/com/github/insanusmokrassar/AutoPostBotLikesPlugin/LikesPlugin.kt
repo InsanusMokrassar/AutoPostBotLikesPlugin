@@ -58,12 +58,22 @@ class LikesPlugin(
             }
         }
 
+        val adminsHolder = AdminsHolder(
+            botWR,
+            baseConfig.targetChatId
+        )
+
         enableDetectLikesAttachmentMessages(
-            AdminsHolder(
-                botWR,
-                baseConfig.targetChatId
-            ),
+            adminsHolder,
             baseConfig.targetChatId,
+            likesPluginRegisteredLikesMessagesTable,
+            botWR
+        )
+
+        enableDetectLikesRefreshMessages(
+            adminsHolder,
+            baseConfig.targetChatId,
+            likesPluginLikesTable,
             likesPluginRegisteredLikesMessagesTable,
             botWR
         )

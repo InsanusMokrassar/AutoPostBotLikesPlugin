@@ -1,5 +1,6 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
 import com.github.insanusmokrassar.AutoPostTelegramBot.messagesListener
@@ -13,15 +14,18 @@ import com.pengrad.telegrambot.request.SendMessage
 import org.joda.time.DateTime
 import java.lang.ref.WeakReference
 
-private val commandRegex: Regex = Regex("^/attachTargetLike [\\d]+$")
-private const val commandTemplate: String = "/attachTargetLike %d"
+private val commandRegex: Regex = Regex("^/refreshTargetLike [\\d]+$")
+private const val commandTemplate: String = "/refreshTargetLike %d"
 
-internal fun enableDetectLikesAttachmentMessages(
+internal fun enableDetectLikesRefreshMessages(
     adminsHolder: AdminsHolder,
     targetChatId: Long,
+    likesPluginLikesTable: LikesPluginLikesTable,
     likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
     botWR: WeakReference<TelegramBot>
 ) {
+    val updateChannel = likesPluginLikesTable.messageButtonsUpdatedChannel
+
     realMessagesListener.broadcastChannel.subscribe {
         (_, message) ->
         val userId = message.from().id().toLong()
@@ -31,34 +35,22 @@ internal fun enableDetectLikesAttachmentMessages(
                 botWR.get() ?.executeAsync(
                     SendMessage(
                         message.chat().id(),
-                        "Ok, send me `${commandTemplate.format(message.forwardFromMessageId())}`"
+                        "Send me `${commandTemplate.format(message.forwardFromMessageId())}` for force post likes update"
                     )
                 )
             }
         } ?: if (commandRegex.matches(message.text()) && adminsHolder.contains(userId)) {
             val messageId = message.text().split(" ")[1].toInt()
 
-            if (messageId !in likesPluginRegisteredLikesMessagesTable) {
-                likesPluginRegisteredLikesMessagesTable.registerMessageId(
-                    messageId,
-                    DateTime.now()
-                ).also {
-                    if (it) {
-                        botWR.get() ?.executeAsync(
-                            SendMessage(
-                                message.chat().id(),
-                                "Likes was attached (can be showed with delay)"
-                            )
-                        )
-                    } else {
-                        botWR.get() ?.executeAsync(
-                            SendMessage(
-                                message.chat().id(),
-                                "Likes was not attached (can be already attached)"
-                            )
-                        )
-                    }
-                }
+            if (messageId in likesPluginRegisteredLikesMessagesTable) {
+                updateChannel.send(messageId)
+
+                botWR.get() ?.executeAsync(
+                    SendMessage(
+                        message.chat().id(),
+                        "Likes was updated (can be showed with delay)"
+                    )
+                )
             }
         }
     }
