@@ -2,9 +2,11 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
 
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.Mark
+import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
-import kotlinx.coroutines.experimental.channels.BroadcastChannel
-import kotlinx.coroutines.experimental.launch
+import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
+import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
@@ -13,21 +15,23 @@ import org.joda.time.DateTime
 
 private const val countOfSubscriptions = 256
 
+private val LikesPluginLikesTableScope = NewDefaultCoroutineScope(1)
+
 class LikesPluginLikesTable(
     likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable
 ) : Table() {
-    val messageButtonsUpdatedChannel = BroadcastChannel<Int>(countOfSubscriptions)
+    val messageButtonsUpdatedChannel = BroadcastChannel<MessageIdentifier>(countOfSubscriptions)
 
     private val id = integer("id").primaryKey().autoIncrement()
     private val userId = long("userId")
-    private val messageId = integer("messageId")
+    private val messageId = long("messageId")
     private val buttonId = text("buttonId")
     private val dateTime = datetime("markDateTime").default(DateTime.now())
 
     private val ResultRow.buttonId: String
         get() = get(this@LikesPluginLikesTable.buttonId)
 
-    private val ResultRow.messageId: Int
+    private val ResultRow.messageId: MessageIdentifier
         get() = get(this@LikesPluginLikesTable.messageId)
 
     private val ResultRow.userId: Long
@@ -82,7 +86,7 @@ class LikesPluginLikesTable(
             }
         }.also {
             if (it) {
-                launch {
+                LikesPluginLikesTableScope.launch {
                     messageButtonsUpdatedChannel.send(mark.messageId)
                 }
             }
@@ -96,14 +100,14 @@ class LikesPluginLikesTable(
             } > 0
         }.also {
             if (it) {
-                launch {
+                LikesPluginLikesTableScope.launch {
                     messageButtonsUpdatedChannel.send(mark.messageId)
                 }
             }
         }
     }
 
-    private fun deleteUserMarksOnMessage(messageId: Int, userId: Long, buttonIds: List<String>?): Int {
+    private fun deleteUserMarksOnMessage(messageId: MessageIdentifier, userId: Long, buttonIds: List<String>?): Int {
         return transaction {
             this@LikesPluginLikesTable.userId.eq(
                 userId
@@ -154,7 +158,7 @@ class LikesPluginLikesTable(
                 false
             }).also {
                 if (it || haveDeleted) {
-                    launch {
+                    LikesPluginLikesTableScope.launch {
                         messageButtonsUpdatedChannel.send(mark.messageId)
                     }
                 }
@@ -162,7 +166,7 @@ class LikesPluginLikesTable(
         }
     }
 
-    fun userMarksOnMessage(messageId: Int, userId: Long): List<Mark> {
+    fun userMarksOnMessage(messageId: MessageIdentifier, userId: Long): List<Mark> {
         return transaction {
             select {
                 this@LikesPluginLikesTable.messageId.eq(
@@ -182,7 +186,7 @@ class LikesPluginLikesTable(
         }
     }
 
-    fun marksOfMessage(messageId: Int): List<Mark> {
+    fun marksOfMessage(messageId: MessageIdentifier): List<Mark> {
         return transaction {
             select {
                 this@LikesPluginLikesTable.messageId.eq(messageId)
@@ -196,7 +200,7 @@ class LikesPluginLikesTable(
         }
     }
 
-    fun getMessageButtonMark(messageId: Int, buttonId: String): ButtonMark {
+    fun getMessageButtonMark(messageId: MessageIdentifier, buttonId: String): ButtonMark {
         return transaction {
             select {
                 this@LikesPluginLikesTable.messageId.eq(
@@ -215,7 +219,7 @@ class LikesPluginLikesTable(
         }
     }
 
-    fun getMessageButtonMarks(messageId: Int): List<ButtonMark> {
+    fun getMessageButtonMarks(messageId: MessageIdentifier): List<ButtonMark> {
         val mapOfButtonsCount = HashMap<String, Int>()
 
         return transaction {

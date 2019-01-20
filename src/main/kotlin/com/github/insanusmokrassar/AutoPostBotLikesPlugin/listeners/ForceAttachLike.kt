@@ -2,14 +2,16 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
-import com.github.insanusmokrassar.AutoPostTelegramBot.messagesListener
-import com.github.insanusmokrassar.AutoPostTelegramBot.realMessagesListener
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.commands.Command
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.executeAsync
+import com.github.insanusmokrassar.AutoPostTelegramBot.*
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
-import com.pengrad.telegrambot.TelegramBot
-import com.pengrad.telegrambot.model.Message
-import com.pengrad.telegrambot.request.SendMessage
+import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
+import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendMessage
+import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
+import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
+import com.github.insanusmokrassar.TelegramBotAPI.types.message.ForwardedFromChannelMessage
+import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.*
+import com.github.insanusmokrassar.TelegramBotAPI.types.message.content.TextContent
+import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeAsync
 import org.joda.time.DateTime
 import java.lang.ref.WeakReference
 
@@ -18,45 +20,53 @@ private const val commandTemplate: String = "/attachTargetLike %d"
 
 internal fun enableDetectLikesAttachmentMessages(
     adminsHolder: AdminsHolder,
-    targetChatId: Long,
+    targetChatId: ChatId,
     likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
-    botWR: WeakReference<TelegramBot>
+    botWR: WeakReference<RequestsExecutor>
 ) {
-    realMessagesListener.broadcastChannel.subscribe {
-        (_, message) ->
-        val userId = message.from().id().toLong()
-        message.forwardFromChat() ?.let {
-            forwardFromChat ->
-            if (forwardFromChat.id() == targetChatId && adminsHolder.contains(userId)) {
-                botWR.get() ?.executeAsync(
-                    SendMessage(
-                        message.chat().id(),
-                        "Ok, send me `${commandTemplate.format(message.forwardFromMessageId())}`"
-                    )
-                )
-            }
-        } ?: if (commandRegex.matches(message.text()) && adminsHolder.contains(userId)) {
-            val messageId = message.text().split(" ")[1].toInt()
+    allMessagesListener.subscribe {
+        val message = it.data as? CommonMessage<*> ?: return@subscribe
+        val userId = (message as? FromUserMessage) ?.user ?.id ?: return@subscribe
 
-            if (messageId !in likesPluginRegisteredLikesMessagesTable) {
-                likesPluginRegisteredLikesMessagesTable.registerMessageId(
-                    messageId,
-                    DateTime.now()
-                ).also {
-                    if (it) {
-                        botWR.get() ?.executeAsync(
-                            SendMessage(
-                                message.chat().id(),
-                                "Likes was attached (can be showed with delay)"
-                            )
+        val forwarded = message.forwarded
+        when (forwarded) {
+            is ForwardedFromChannelMessage -> {
+                if (forwarded.channelChat.id == targetChatId && adminsHolder.contains(userId)) {
+                    botWR.get() ?.executeAsync(
+                        SendMessage(
+                            message.chat.id,
+                            "Ok, send me `${commandTemplate.format(forwarded.messageId)}`"
                         )
-                    } else {
-                        botWR.get() ?.executeAsync(
-                            SendMessage(
-                                message.chat().id(),
-                                "Likes was not attached (can be already attached)"
-                            )
-                        )
+                    )
+                }
+            }
+            else -> {
+                (message.content as? TextContent) ?.also {
+                    if (commandRegex.matches(it.text) && adminsHolder.contains(userId)) {
+                        val messageId = it.text.split(" ")[1].toLong()
+
+                        if (messageId !in likesPluginRegisteredLikesMessagesTable) {
+                            likesPluginRegisteredLikesMessagesTable.registerMessageId(
+                                messageId,
+                                DateTime.now()
+                            ).also {
+                                if (it) {
+                                    botWR.get() ?.executeAsync(
+                                        SendMessage(
+                                            message.chat.id,
+                                            "Likes was attached (can be showed with delay)"
+                                        )
+                                    )
+                                } else {
+                                    botWR.get() ?.executeAsync(
+                                        SendMessage(
+                                            message.chat.id,
+                                            "Likes was not attached (can be already attached)"
+                                        )
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

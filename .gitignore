@@ -3,6 +3,8 @@ out/*
 *.iml
 target
 
-config.json
-
 settings.xml
+
+.gradle/
+build/
+out/

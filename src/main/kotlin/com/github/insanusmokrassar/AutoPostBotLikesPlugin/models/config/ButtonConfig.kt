@@ -1,8 +1,11 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config
 
+import kotlinx.serialization.Serializable
+
 private const val textIdentifier = "\$text"
 private const val countIdentifier = "\$count"
 
+@Serializable
 data class ButtonConfig (
     val text: String = "",
     val id: String = "",

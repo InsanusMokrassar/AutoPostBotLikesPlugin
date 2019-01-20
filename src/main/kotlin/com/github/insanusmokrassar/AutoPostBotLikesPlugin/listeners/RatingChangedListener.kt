@@ -7,18 +7,21 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.LikePlug
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.debounceByValue
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.*
-import com.pengrad.telegrambot.TelegramBot
-import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
-import com.pengrad.telegrambot.request.EditMessageReplyMarkup
-import kotlinx.coroutines.experimental.CancellationException
-import kotlinx.coroutines.experimental.channels.*
+import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
+import com.github.insanusmokrassar.TelegramBotAPI.requests.edit.ReplyMarkup.EditChatMessageReplyMarkup
+import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
+import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
+import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardMarkup
+import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeAsync
+import com.github.insanusmokrassar.TelegramBotAPI.utils.matrix
+import com.github.insanusmokrassar.TelegramBotAPI.utils.row
 import java.lang.ref.WeakReference
 
 class RatingChangedListener(
     private val likesPluginLikesTable: LikesPluginLikesTable,
     private val likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
-    private val botWR: WeakReference<TelegramBot>,
-    private val chatId: Long,
+    private val botWR: WeakReference<RequestsExecutor>,
+    private val chatId: ChatId,
     private val likePluginConfig: LikePluginConfig
 ) {
     private val debounceDelay: Long = likePluginConfig.debounceDelay
@@ -33,43 +36,43 @@ class RatingChangedListener(
         }
     }
 
-    private fun updateMessage(messageId: Int) {
+    private fun updateMessage(messageId: MessageIdentifier) {
         botWR.get() ?.executeAsync(
-            EditMessageReplyMarkup(
+            EditChatMessageReplyMarkup(
                 chatId,
-                messageId
-            ).replyMarkup(
-                createMarkup(messageId)
+                messageId,
+                replyMarkup = createMarkup(messageId)
             ),
-            onFailure = {
-                _, ioException ->
-                commonLogger.warning("Can't edit message $messageId for applying: ${ioException ?.message ?: "unknown problem"}")
-            },
-            retries = 3,
-            retriesDelay = retriesDelay / 2
+            onFail = {
+                commonLogger.warning("Can't edit message $messageId for applying: ${it.description ?: "unknown problem"}")
+            }
         )
     }
 
-    private fun createMarkup(messageId: Int): InlineKeyboardMarkup {
+    private fun createMarkup(messageId: MessageIdentifier): InlineKeyboardMarkup {
         val buttonMarks = likesPluginLikesTable.getMessageButtonMarks(messageId).map {
             it.buttonId to it
         }.toMap()
         return InlineKeyboardMarkup(
-            *likePluginConfig.adaptedGroups.map {
-                group ->
-                group.items.map {
-                    button ->
-                    val mark = buttonMarks[button.id] ?: ButtonMark(
-                        messageId,
-                        button.id,
-                        0
-                    )
-                    createMarkButton(
-                        button,
-                        mark
-                    )
-                }.toTypedArray()
-            }.toTypedArray()
+            matrix {
+                likePluginConfig.adaptedGroups.forEach { group ->
+                    row {
+                        group.items.forEach { button ->
+                            val mark = buttonMarks[button.id] ?: ButtonMark(
+                                messageId,
+                                button.id,
+                                0
+                            )
+                            add(
+                                createMarkButton(
+                                    button,
+                                    mark
+                                )
+                            )
+                        }
+                    }
+                }
+            }
         )
     }
 }
