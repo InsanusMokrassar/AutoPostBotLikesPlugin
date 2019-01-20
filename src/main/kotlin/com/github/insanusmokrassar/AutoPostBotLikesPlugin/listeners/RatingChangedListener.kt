@@ -3,7 +3,7 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.LikePluginConfig
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.Group
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.debounceByValue
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.*
@@ -19,12 +19,12 @@ import java.lang.ref.WeakReference
 
 class RatingChangedListener(
     private val likesPluginLikesTable: LikesPluginLikesTable,
-    private val likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
+    likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
     private val botWR: WeakReference<RequestsExecutor>,
     private val chatId: ChatId,
-    private val likePluginConfig: LikePluginConfig
+    debounceDelay: Long,
+    private val adaptedGroups: List<Group>
 ) {
-    private val debounceDelay: Long = likePluginConfig.debounceDelay
     private val retriesDelay = debounceDelay / 2
 
     init {
@@ -55,7 +55,7 @@ class RatingChangedListener(
         }.toMap()
         return InlineKeyboardMarkup(
             matrix {
-                likePluginConfig.adaptedGroups.forEach { group ->
+                adaptedGroups.forEach { group ->
                     row {
                         group.items.forEach { button ->
                             val mark = buttonMarks[button.id] ?: ButtonMark(
