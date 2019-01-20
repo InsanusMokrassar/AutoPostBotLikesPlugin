@@ -11,9 +11,11 @@ import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.PluginManage
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostPublisher
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import kotlinx.serialization.Optional
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import java.lang.ref.WeakReference
 
+@Serializable
 class LikesPlugin(
     val buttons: List<ButtonConfig>,
     @Optional
@@ -51,7 +53,9 @@ class LikesPlugin(
         }
     }
 
+    @Transient
     val likesPluginRegisteredLikesMessagesTable = LikesPluginRegisteredLikesMessagesTable()
+    @Transient
     val likesPluginLikesTable = LikesPluginLikesTable(likesPluginRegisteredLikesMessagesTable)
 
     override suspend fun onInit(executor: RequestsExecutor, baseConfig: FinalConfig, pluginManager: PluginManager) {
