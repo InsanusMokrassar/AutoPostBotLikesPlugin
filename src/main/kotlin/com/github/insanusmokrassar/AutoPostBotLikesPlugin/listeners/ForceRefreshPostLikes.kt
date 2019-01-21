@@ -8,6 +8,7 @@ import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscrib
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
+import com.github.insanusmokrassar.TelegramBotAPI.types.ParseMode.MarkdownParseMode
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.ForwardedFromChannelMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.CommonMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.FromUserMessage
@@ -35,7 +36,8 @@ internal fun enableDetectLikesRefreshMessages(
                 botWR.get() ?.executeAsync(
                     SendMessage(
                         message.chat.id,
-                        "Send me `${commandTemplate.format(forwarded.messageId)}` for force post likes update"
+                        "Send me `${commandTemplate.format(forwarded.messageId)}` for force post likes update",
+                        MarkdownParseMode
                     )
                 )
             }

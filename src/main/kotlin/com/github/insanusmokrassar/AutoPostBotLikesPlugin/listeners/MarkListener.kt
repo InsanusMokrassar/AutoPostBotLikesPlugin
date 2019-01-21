@@ -40,7 +40,7 @@ class MarkListener(
             val data = query.data
             if (chatId == targetChatId && data.startsWith(like_plugin_data) && data.split(" ")[1] == buttonId) {
                 val messageId = query.message.messageId
-                val userId = (query.message as? FromUserMessage) ?.user ?.id ?: return@subscribeChecking true
+                val userId = query.user.id
 
                 val mark = Mark(userId.chatId, messageId, buttonId)
 

@@ -8,6 +8,7 @@ import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
+import com.github.insanusmokrassar.TelegramBotAPI.types.ParseMode.MarkdownParseMode
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.ForwardedFromChannelMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.*
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.content.TextContent
@@ -35,7 +36,8 @@ internal fun enableDetectLikesAttachmentMessages(
                     botWR.get() ?.executeAsync(
                         SendMessage(
                             message.chat.id,
-                            "Ok, send me `${commandTemplate.format(forwarded.messageId)}`"
+                            "Ok, send me `${commandTemplate.format(forwarded.messageId)}`",
+                            MarkdownParseMode
                         )
                     )
                 }
