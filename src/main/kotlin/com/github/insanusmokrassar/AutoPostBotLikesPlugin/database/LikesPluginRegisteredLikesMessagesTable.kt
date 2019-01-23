@@ -1,20 +1,24 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
 
-import kotlinx.coroutines.experimental.channels.BroadcastChannel
-import kotlinx.coroutines.experimental.launch
+import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
+import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
+import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 
 private const val broadcastCount = 256
 
-typealias MessageIdToDateTime = Pair<Int, DateTime>
+typealias MessageIdToDateTime = Pair<MessageIdentifier, DateTime>
+
+private val LikesPluginRegisteredLikesMessagesTableScope = NewDefaultCoroutineScope(1)
 
 class LikesPluginRegisteredLikesMessagesTable : Table() {
-    val messageIdAllocatedChannel = BroadcastChannel<Int>(broadcastCount)
-    val messageIdRemovedChannel = BroadcastChannel<Int>(broadcastCount)
+    val messageIdAllocatedChannel = BroadcastChannel<MessageIdentifier>(broadcastCount)
+    val messageIdRemovedChannel = BroadcastChannel<MessageIdentifier>(broadcastCount)
 
-    private val messageId = integer("messageId").primaryKey()
+    private val messageId = long("messageId").primaryKey()
     private val dateTime = datetime("datetime")
 
     init {
@@ -23,13 +27,13 @@ class LikesPluginRegisteredLikesMessagesTable : Table() {
         }
     }
 
-    operator fun contains(messageId: Int) : Boolean {
+    operator fun contains(messageId: MessageIdentifier) : Boolean {
         return transaction {
             select { this@LikesPluginRegisteredLikesMessagesTable.messageId.eq(messageId) }.count() > 0
         }
     }
 
-    fun registerMessageId(messageId: Int, dateTime: DateTime): Boolean {
+    fun registerMessageId(messageId: MessageIdentifier, dateTime: DateTime): Boolean {
         return (if (messageId !in this) {
             transaction {
                 !insert {
@@ -41,14 +45,14 @@ class LikesPluginRegisteredLikesMessagesTable : Table() {
             false
         }).also {
             if (it) {
-                launch {
+                LikesPluginRegisteredLikesMessagesTableScope.launch {
                     messageIdAllocatedChannel.send(messageId)
                 }
             }
         }
     }
 
-    fun unregisterMessageId(messageId: Int): Boolean {
+    fun unregisterMessageId(messageId: MessageIdentifier): Boolean {
         return (if (messageId in this) {
             transaction {
                 deleteWhere {
@@ -59,7 +63,7 @@ class LikesPluginRegisteredLikesMessagesTable : Table() {
             false
         }).also {
             if (it) {
-                launch {
+                LikesPluginRegisteredLikesMessagesTableScope.launch {
                     messageIdRemovedChannel.send(messageId)
                 }
             }
@@ -69,7 +73,10 @@ class LikesPluginRegisteredLikesMessagesTable : Table() {
     fun getAllRegistered(): List<MessageIdToDateTime> {
         return transaction {
             selectAll().map {
-                it[messageId] to it[dateTime]
+                MessageIdToDateTime(
+                    it[messageId],
+                    it[dateTime]
+                )
             }
         }
     }

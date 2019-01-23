@@ -52,3 +52,8 @@ Now plugin always must receive `params` object
 
 * Fix attach like
 * Add refresh message marks
+
+# 1.0.0
+
+* Update build system
+* Change version of api library and base library

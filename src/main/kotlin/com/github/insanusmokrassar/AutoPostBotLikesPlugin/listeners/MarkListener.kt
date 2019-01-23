@@ -4,41 +4,45 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLi
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.Mark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.ButtonConfig
-import com.github.insanusmokrassar.AutoPostTelegramBot.realCallbackQueryListener
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.queryAnswer
+import com.github.insanusmokrassar.AutoPostTelegramBot.allCallbackQueryListener
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribeChecking
-import com.pengrad.telegrambot.TelegramBot
-import com.pengrad.telegrambot.model.request.InlineKeyboardButton
+import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
+import com.github.insanusmokrassar.TelegramBotAPI.requests.answers.createAnswer
+import com.github.insanusmokrassar.TelegramBotAPI.types.CallbackQuery.*
+import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
+import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardButtons.CallbackDataInlineKeyboardButton
+import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardButtons.InlineKeyboardButton
+import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.FromUserMessage
 import java.lang.ref.WeakReference
 
 
 private const val like_plugin_data = "like_plugin "
 private const val markCallbackData = "$like_plugin_data%s"
-fun createMarkButton(buttonConfig: ButtonConfig, buttonMark: ButtonMark): InlineKeyboardButton = InlineKeyboardButton(
-    buttonConfig.format(buttonMark.count)
-).also {
-    it.callbackData(markCallbackData.format(buttonConfig.id))
-}
+fun createMarkButton(buttonConfig: ButtonConfig, buttonMark: ButtonMark): InlineKeyboardButton = CallbackDataInlineKeyboardButton(
+    buttonConfig.format(buttonMark.count),
+    markCallbackData.format(buttonConfig.id)
+)
 
 class MarkListener(
-    targetChatId: Long,
+    targetChatId: ChatId,
     likesPluginLikesTable: LikesPluginLikesTable,
     button: ButtonConfig,
-    botWR: WeakReference<TelegramBot>,
+    botWR: WeakReference<RequestsExecutor>,
     private val radioGroupIds: List<String>? = null
 ) {
     private val buttonId: String = button.id
 
     init {
-        realCallbackQueryListener.broadcastChannel.subscribeChecking {
+        allCallbackQueryListener.subscribeChecking {
+            val query = it.data as? MessageDataCallbackQuery ?: return@subscribeChecking true
             val bot = botWR.get() ?: return@subscribeChecking false
-            val chatId = it.second.message() ?.chat() ?.id() ?: return@subscribeChecking true
-            val data = it.second.data()
+            val chatId = query.message.chat.id
+            val data = query.data
             if (chatId == targetChatId && data.startsWith(like_plugin_data) && data.split(" ")[1] == buttonId) {
-                val messageId = it.second.message().messageId()
-                val userId = it.second.from().id()
+                val messageId = query.message.messageId
+                val userId = query.user.id
 
-                val mark = Mark(userId.toLong(), messageId, buttonId)
+                val mark = Mark(userId.chatId, messageId, buttonId)
 
                 val marked = radioGroupIds ?.let {
                     radioButtonsIds ->
@@ -48,13 +52,14 @@ class MarkListener(
                     )
                 } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
 
-                bot.queryAnswer(
-                    it.second.id(),
-                    if (marked) {
-                        button.positiveAnswer ?.text ?: ""
-                    } else {
-                        button.negativeAnswer ?.text ?: ""
-                    }
+                bot.execute(
+                    query.createAnswer(
+                        if (marked) {
+                            button.positiveAnswer ?.text ?: ""
+                        } else {
+                            button.negativeAnswer ?.text ?: ""
+                        }
+                    )
                 )
             }
             true

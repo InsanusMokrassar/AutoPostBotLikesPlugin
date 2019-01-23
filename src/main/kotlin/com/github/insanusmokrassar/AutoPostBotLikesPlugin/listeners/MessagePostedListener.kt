@@ -2,12 +2,14 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostIdListPostMessagesTelegramMessages
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.executeAsync
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribeChecking
-import com.pengrad.telegrambot.TelegramBot
-import com.pengrad.telegrambot.model.request.ParseMode
-import com.pengrad.telegrambot.request.SendMessage
-import kotlinx.coroutines.experimental.channels.BroadcastChannel
+import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
+import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendMessage
+import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
+import com.github.insanusmokrassar.TelegramBotAPI.types.ParseMode.MarkdownParseMode
+import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.MediaGroupMessage
+import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeAsync
+import kotlinx.coroutines.channels.BroadcastChannel
 import org.joda.time.DateTime
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
@@ -15,55 +17,41 @@ import java.util.concurrent.TimeUnit
 class MessagePostedListener(
     channel: BroadcastChannel<PostIdListPostMessagesTelegramMessages>,
     private val likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
-    private val chatId: Long,
+    private val chatId: ChatId,
     private val separateAlways: Boolean,
     private val separatedText: String,
-    private val botWR: WeakReference<TelegramBot>
+    private val botWR: WeakReference<RequestsExecutor>
 ) {
     init {
         channel.subscribeChecking {
             val bot = botWR.get() ?: return@subscribeChecking false
             val firstMessage = it.second.values.minBy {
-                it.messageId()
+                it.messageId
             } ?: return@subscribeChecking true
             val lastMessage = it.second.values.maxBy {
-                it.messageId()
+                it.messageId
             } ?: return@subscribeChecking true
 
-            if (separateAlways || lastMessage.mediaGroupId() != null) {
+            if (separateAlways || (lastMessage is MediaGroupMessage)) {
                 bot.executeAsync(
                     SendMessage(
                         chatId,
-                        separatedText
-                    ).parseMode(
-                        ParseMode.Markdown
-                    ).replyToMessageId(
-                        firstMessage.messageId()
+                        separatedText,
+                        MarkdownParseMode,
+                        replyToMessageId = firstMessage.messageId
                     ),
-                    onResponse = {
-                        _, sendResponse ->
+                    onSuccess = {
+                        val sendResponse = it.asMessage
                         likesPluginRegisteredLikesMessagesTable.registerMessageId(
-                            sendResponse.message().messageId(),
-                            sendResponse ?.message() ?.date() ?.toLong() ?.let {
-                                DateTime(
-                                    TimeUnit.SECONDS.toMillis(
-                                        it
-                                    )
-                                )
-                            } ?: DateTime.now()
+                            sendResponse.messageId,
+                            sendResponse.date
                         )
                     }
                 )
             } else {
                 likesPluginRegisteredLikesMessagesTable.registerMessageId(
-                    lastMessage.messageId(),
-                    lastMessage.date() ?.toLong() ?.let {
-                        DateTime(
-                            TimeUnit.SECONDS.toMillis(
-                                it
-                            )
-                        )
-                    } ?: DateTime.now()
+                    lastMessage.messageId,
+                    lastMessage.date
                 )
             }
 
