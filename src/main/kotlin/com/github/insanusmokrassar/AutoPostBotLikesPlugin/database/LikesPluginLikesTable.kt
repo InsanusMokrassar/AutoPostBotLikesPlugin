@@ -2,6 +2,7 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
 
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.Mark
+import com.github.insanusmokrassar.AutoPostTelegramBot.largeBroadcastCapacity
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
@@ -13,14 +14,12 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 
-private const val countOfSubscriptions = 256
-
 private val LikesPluginLikesTableScope = NewDefaultCoroutineScope(1)
 
 class LikesPluginLikesTable(
     likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable
 ) : Table() {
-    val messageButtonsUpdatedChannel = BroadcastChannel<MessageIdentifier>(countOfSubscriptions)
+    val messageButtonsUpdatedChannel = BroadcastChannel<MessageIdentifier>(largeBroadcastCapacity)
 
     private val id = integer("id").primaryKey().autoIncrement()
     private val userId = long("userId")

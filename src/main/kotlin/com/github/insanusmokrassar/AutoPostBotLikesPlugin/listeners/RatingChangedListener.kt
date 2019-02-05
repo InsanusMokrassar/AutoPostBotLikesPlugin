@@ -15,6 +15,7 @@ import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardMa
 import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeAsync
 import com.github.insanusmokrassar.TelegramBotAPI.utils.matrix
 import com.github.insanusmokrassar.TelegramBotAPI.utils.row
+import java.lang.Exception
 import java.lang.ref.WeakReference
 
 class RatingChangedListener(
@@ -25,8 +26,6 @@ class RatingChangedListener(
     debounceDelay: Long,
     private val adaptedGroups: List<Group>
 ) {
-    private val retriesDelay = debounceDelay / 2
-
     init {
         likesPluginLikesTable.messageButtonsUpdatedChannel.debounceByValue(debounceDelay).subscribe {
             updateMessage(it)
@@ -36,17 +35,18 @@ class RatingChangedListener(
         }
     }
 
-    private fun updateMessage(messageId: MessageIdentifier) {
-        botWR.get() ?.executeAsync(
-            EditChatMessageReplyMarkup(
-                chatId,
-                messageId,
-                replyMarkup = createMarkup(messageId)
-            ),
-            onFail = {
-                commonLogger.warning("Can't edit message $messageId for applying: ${it.description ?: "unknown problem"}")
-            }
-        )
+    private suspend fun updateMessage(messageId: MessageIdentifier) {
+        try {
+            botWR.get() ?.execute(
+                EditChatMessageReplyMarkup(
+                    chatId,
+                    messageId,
+                    replyMarkup = createMarkup(messageId)
+                )
+            )
+        } catch (e: Exception) {
+            sendToLogger(e, "Update target message likes")
+        }
     }
 
     private fun createMarkup(messageId: MessageIdentifier): InlineKeyboardMarkup {

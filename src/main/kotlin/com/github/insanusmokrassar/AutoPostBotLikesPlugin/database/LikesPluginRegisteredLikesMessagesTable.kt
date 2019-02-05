@@ -1,5 +1,6 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
 
+import com.github.insanusmokrassar.AutoPostTelegramBot.largeBroadcastCapacity
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import kotlinx.coroutines.channels.BroadcastChannel
@@ -8,15 +9,13 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 
-private const val broadcastCount = 256
-
 typealias MessageIdToDateTime = Pair<MessageIdentifier, DateTime>
 
 private val LikesPluginRegisteredLikesMessagesTableScope = NewDefaultCoroutineScope(1)
 
 class LikesPluginRegisteredLikesMessagesTable : Table() {
-    val messageIdAllocatedChannel = BroadcastChannel<MessageIdentifier>(broadcastCount)
-    val messageIdRemovedChannel = BroadcastChannel<MessageIdentifier>(broadcastCount)
+    val messageIdAllocatedChannel = BroadcastChannel<MessageIdentifier>(largeBroadcastCapacity)
+    val messageIdRemovedChannel = BroadcastChannel<MessageIdentifier>(largeBroadcastCapacity)
 
     private val messageId = long("messageId").primaryKey()
     private val dateTime = datetime("datetime")
@@ -34,15 +33,15 @@ class LikesPluginRegisteredLikesMessagesTable : Table() {
     }
 
     fun registerMessageId(messageId: MessageIdentifier, dateTime: DateTime): Boolean {
-        return (if (messageId !in this) {
-            transaction {
-                !insert {
+        return (transaction {
+            if (messageId !in this@LikesPluginRegisteredLikesMessagesTable) {
+                insert {
                     it[this@LikesPluginRegisteredLikesMessagesTable.messageId] = messageId
                     it[this@LikesPluginRegisteredLikesMessagesTable.dateTime] = dateTime
-                }.isIgnore
+                }.generatedKey != null
+            } else {
+                false
             }
-        } else {
-            false
         }).also {
             if (it) {
                 LikesPluginRegisteredLikesMessagesTableScope.launch {

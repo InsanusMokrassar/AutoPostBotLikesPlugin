@@ -57,3 +57,7 @@ Now plugin always must receive `params` object
 
 * Update build system
 * Change version of api library and base library
+
+### 1.0.1
+
+* Fixes and improvements
