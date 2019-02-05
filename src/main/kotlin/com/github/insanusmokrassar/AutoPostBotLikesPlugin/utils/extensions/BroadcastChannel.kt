@@ -1,5 +1,6 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions
 
+import com.github.insanusmokrassar.AutoPostTelegramBot.extraSmallBroadcastCapacity
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import kotlinx.coroutines.*
@@ -10,12 +11,13 @@ import java.util.concurrent.TimeUnit
 fun <T> BroadcastChannel<T>.debounceByValue(
     delayTime: Long,
     timeUnit: TimeUnit = TimeUnit.MILLISECONDS,
-    scope: CoroutineScope = NewDefaultCoroutineScope(2)
+    scope: CoroutineScope = NewDefaultCoroutineScope(2),
+    resultBroadcastChannelCapacity: Int = extraSmallBroadcastCapacity
 ): BroadcastChannel<T> {
-    val outBroadcastChannel = BroadcastChannel<T>(Channel.CONFLATED)
+    val outBroadcastChannel = BroadcastChannel<T>(resultBroadcastChannelCapacity)
     val values = HashMap<T, Job>()
 
-    val channel = Channel<T>(Channel.CONFLATED)
+    val channel = Channel<T>(extraSmallBroadcastCapacity)
     scope.launch {
         for (msg in channel) {
             values[msg] ?.cancel()

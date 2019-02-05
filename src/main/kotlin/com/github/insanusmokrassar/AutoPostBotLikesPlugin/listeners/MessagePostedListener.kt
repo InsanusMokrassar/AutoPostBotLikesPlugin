@@ -2,17 +2,14 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostIdListPostMessagesTelegramMessages
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribeChecking
+import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
 import com.github.insanusmokrassar.TelegramBotAPI.types.ParseMode.MarkdownParseMode
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.MediaGroupMessage
-import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeAsync
 import kotlinx.coroutines.channels.BroadcastChannel
-import org.joda.time.DateTime
 import java.lang.ref.WeakReference
-import java.util.concurrent.TimeUnit
 
 class MessagePostedListener(
     channel: BroadcastChannel<PostIdListPostMessagesTelegramMessages>,
@@ -23,30 +20,28 @@ class MessagePostedListener(
     private val botWR: WeakReference<RequestsExecutor>
 ) {
     init {
-        channel.subscribeChecking {
-            val bot = botWR.get() ?: return@subscribeChecking false
-            val firstMessage = it.second.values.minBy {
+        channel.subscribe { (_, messagesPairs) ->
+            val bot = botWR.get() ?: return@subscribe
+            val firstMessage = messagesPairs.values.minBy {
                 it.messageId
-            } ?: return@subscribeChecking true
-            val lastMessage = it.second.values.maxBy {
+            } ?: return@subscribe
+            val lastMessage = messagesPairs.values.maxBy {
                 it.messageId
-            } ?: return@subscribeChecking true
+            } ?: return@subscribe
 
             if (separateAlways || (lastMessage is MediaGroupMessage)) {
-                bot.executeAsync(
+                val result = bot.execute(
                     SendMessage(
                         chatId,
                         separatedText,
                         MarkdownParseMode,
                         replyToMessageId = firstMessage.messageId
-                    ),
-                    onSuccess = {
-                        val sendResponse = it.asMessage
-                        likesPluginRegisteredLikesMessagesTable.registerMessageId(
-                            sendResponse.messageId,
-                            sendResponse.date
-                        )
-                    }
+                    )
+                )
+                val sendResponse = result.asMessage
+                likesPluginRegisteredLikesMessagesTable.registerMessageId(
+                    sendResponse.messageId,
+                    sendResponse.date
                 )
             } else {
                 likesPluginRegisteredLikesMessagesTable.registerMessageId(
@@ -54,8 +49,6 @@ class MessagePostedListener(
                     lastMessage.date
                 )
             }
-
-            true
         }
     }
 }

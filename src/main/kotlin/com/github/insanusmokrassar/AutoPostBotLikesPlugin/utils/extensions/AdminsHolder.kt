@@ -1,11 +1,10 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions
 
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.chat.get.GetChatAdministrators
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
-import com.github.insanusmokrassar.TelegramBotAPI.types.ChatMember.*
+import com.github.insanusmokrassar.TelegramBotAPI.types.ChatMember.AdministratorChatMember
 import com.github.insanusmokrassar.TelegramBotAPI.types.UserId
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
