@@ -8,11 +8,10 @@ import com.github.insanusmokrassar.AutoPostTelegramBot.allCallbackQueryListener
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribeChecking
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.answers.createAnswer
-import com.github.insanusmokrassar.TelegramBotAPI.types.CallbackQuery.*
+import com.github.insanusmokrassar.TelegramBotAPI.types.CallbackQuery.MessageDataCallbackQuery
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
 import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardButtons.CallbackDataInlineKeyboardButton
 import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardButtons.InlineKeyboardButton
-import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.FromUserMessage
 import java.lang.ref.WeakReference
 
 

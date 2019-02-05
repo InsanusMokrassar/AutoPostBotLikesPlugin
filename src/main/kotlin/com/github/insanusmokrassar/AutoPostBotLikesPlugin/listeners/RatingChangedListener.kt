@@ -5,17 +5,15 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRe
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.Group
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.debounceByValue
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.*
+import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.sendToLogger
+import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.edit.ReplyMarkup.EditChatMessageReplyMarkup
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardMarkup
-import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeAsync
 import com.github.insanusmokrassar.TelegramBotAPI.utils.matrix
 import com.github.insanusmokrassar.TelegramBotAPI.utils.row
-import java.lang.Exception
 import java.lang.ref.WeakReference
 
 class RatingChangedListener(
