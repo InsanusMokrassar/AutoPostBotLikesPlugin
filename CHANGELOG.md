@@ -65,3 +65,7 @@ Now plugin always must receive `params` object
 ### 1.0.2
 
 * Hotfix for registered message data
+
+### 1.0.3
+
+* -//-
