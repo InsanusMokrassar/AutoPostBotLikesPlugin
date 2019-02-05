@@ -38,7 +38,8 @@ class LikesPluginRegisteredLikesMessagesTable : Table() {
                 insert {
                     it[this@LikesPluginRegisteredLikesMessagesTable.messageId] = messageId
                     it[this@LikesPluginRegisteredLikesMessagesTable.dateTime] = dateTime
-                }[this@LikesPluginRegisteredLikesMessagesTable.messageId] != null
+                }
+                true
             } else {
                 false
             }
