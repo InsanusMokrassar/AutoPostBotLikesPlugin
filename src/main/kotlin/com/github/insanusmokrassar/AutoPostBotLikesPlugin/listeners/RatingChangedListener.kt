@@ -33,7 +33,7 @@ class RatingChangedListener(
         }
     }
 
-    private suspend fun updateMessage(messageId: MessageIdentifier) {
+    private suspend fun updateMessage(messageId: MessageIdentifier, retries: Int = 3) {
         try {
             botWR.get() ?.execute(
                 EditChatMessageReplyMarkup(
@@ -44,6 +44,7 @@ class RatingChangedListener(
             )
         } catch (e: Exception) {
             sendToLogger(e, "Update target message likes")
+            updateMessage(messageId, retries - 1)
         }
     }
 
