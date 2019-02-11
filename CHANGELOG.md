@@ -69,3 +69,5 @@ Now plugin always must receive `params` object
 ### 1.0.3
 
 * -//-
+
+### 1.0.4
