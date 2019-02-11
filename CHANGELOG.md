@@ -73,3 +73,4 @@ Now plugin always must receive `params` object
 ### 1.0.4
 
 * Add optional field `botConfig`
+* Update version of bot to `1.0.8`
