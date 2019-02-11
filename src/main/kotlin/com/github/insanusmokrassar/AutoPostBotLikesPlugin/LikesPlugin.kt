@@ -5,6 +5,7 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRe
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
+import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.BotConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.FinalConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.Plugin
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.PluginManager
@@ -23,7 +24,9 @@ class LikesPlugin(
     @Optional
     val separatedText: String = "Like? :)",
     @Optional
-    val debounceDelay: Long = 1000
+    val debounceDelay: Long = 1000,
+    @Optional
+    private val botConfig: BotConfig? = null
 ) : Plugin {
     @Transient
     private val realGroups: List<GroupConfig> by lazy {
@@ -56,11 +59,16 @@ class LikesPlugin(
     @Transient
     val likesPluginLikesTable = LikesPluginLikesTable(likesPluginRegisteredLikesMessagesTable)
 
+    @Transient
+    private val bot = botConfig ?.createBot()
+
     override suspend fun onInit(executor: RequestsExecutor, baseConfig: FinalConfig, pluginManager: PluginManager) {
-        super.onInit(executor, baseConfig, pluginManager)
+        super.onInit(bot ?: executor, baseConfig, pluginManager)
         val publisher = pluginManager.plugins.firstOrNull { it is PostPublisher } as? PostPublisher ?: return
 
-        val botWR = WeakReference(executor)
+        val botWR = bot ?.let {
+            WeakReference(it)
+        } ?: WeakReference(executor)
 
         MessagePostedListener(
             publisher.postPublishedChannel,
