@@ -8,6 +8,11 @@ import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
 import java.util.concurrent.TimeUnit
 
+private sealed class DebounceAction<T>
+
+private data class AddValue<T>(val value: T) : DebounceAction<T>()
+private data class RemoveJob<T>(val value: T, val job: Job) : DebounceAction<T>()
+
 fun <T> BroadcastChannel<T>.debounceByValue(
     delayTime: Long,
     timeUnit: TimeUnit = TimeUnit.MILLISECONDS,
@@ -16,21 +21,34 @@ fun <T> BroadcastChannel<T>.debounceByValue(
 ): BroadcastChannel<T> {
     val outBroadcastChannel = BroadcastChannel<T>(resultBroadcastChannelCapacity)
     val values = HashMap<T, Job>()
+    val delayMillis = timeUnit.toMillis(delayTime)
 
-    val channel = Channel<T>(extraSmallBroadcastCapacity)
+    val channel = Channel<DebounceAction<T>>(extraSmallBroadcastCapacity)
     scope.launch {
-        for (msg in channel) {
-            values[msg] ?.cancel()
-            values[msg] = launch {
-                delay(timeUnit.toMillis(delayTime))
+        for (action in channel) {
+            when (action) {
+                is AddValue -> {
+                    val msg = action.value
+                    values[msg] ?.cancel()
+                    lateinit var job: Job
+                    job = launch {
+                        delay(delayMillis)
 
-                outBroadcastChannel.send(msg)
+                        outBroadcastChannel.send(msg)
+                        channel.send(RemoveJob(msg, job))
+                    }
+                    values[msg] = job
+                }
+                is RemoveJob -> if (values[action.value] == action.job) {
+                    values.remove(action.value)
+                }
             }
+            
         }
     }
 
     subscribe {
-        channel.send(it)
+        channel.send(AddValue(it))
     }
 
     return outBroadcastChannel
