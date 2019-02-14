@@ -82,3 +82,7 @@ Now plugin always must receive `params` object
 ### 1.0.6
 
 * Hotfix for `RatingChangedListener`
+
+### 1.0.7
+
+* `RatingChangedListener` now use `executeUnsage`
