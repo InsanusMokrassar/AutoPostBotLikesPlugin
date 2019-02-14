@@ -46,6 +46,7 @@ class RatingChangedListener(
                         replyMarkup = markup
                     )
                 )
+                break
             } catch (e: Exception) {
                 sendToLogger(e, "Update target message likes; Left retries: $leftRetries")
                 delay(debounceDelay)

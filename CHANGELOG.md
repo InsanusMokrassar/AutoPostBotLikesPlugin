@@ -78,3 +78,7 @@ Now plugin always must receive `params` object
 ### 1.0.5
 
 * Rewriting of `RatingChangedListener` to work without recursive calling
+
+### 1.0.6
+
+* Hotfix for `RatingChangedListener`
