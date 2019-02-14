@@ -69,3 +69,8 @@ Now plugin always must receive `params` object
 ### 1.0.3
 
 * -//-
+
+### 1.0.4
+
+* Update version of bot to `1.0.9`
+* Fixes in `debounceByValue`
