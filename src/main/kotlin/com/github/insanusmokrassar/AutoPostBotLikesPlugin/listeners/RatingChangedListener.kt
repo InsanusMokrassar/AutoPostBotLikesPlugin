@@ -14,6 +14,7 @@ import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardMarkup
 import com.github.insanusmokrassar.TelegramBotAPI.utils.matrix
 import com.github.insanusmokrassar.TelegramBotAPI.utils.row
+import kotlinx.coroutines.delay
 import java.lang.ref.WeakReference
 
 class RatingChangedListener(
@@ -21,7 +22,7 @@ class RatingChangedListener(
     likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
     private val botWR: WeakReference<RequestsExecutor>,
     private val chatId: ChatId,
-    debounceDelay: Long,
+    private val debounceDelay: Long,
     private val adaptedGroups: List<Group>
 ) {
     init {
@@ -34,18 +35,23 @@ class RatingChangedListener(
     }
 
     private suspend fun updateMessage(messageId: MessageIdentifier, retries: Int = 3) {
-        try {
-            botWR.get() ?.execute(
-                EditChatMessageReplyMarkup(
-                    chatId,
-                    messageId,
-                    replyMarkup = createMarkup(messageId)
+        var leftRetries = retries
+        val markup = createMarkup(messageId)
+        do {
+            try {
+                botWR.get() ?.execute(
+                    EditChatMessageReplyMarkup(
+                        chatId,
+                        messageId,
+                        replyMarkup = markup
+                    )
                 )
-            )
-        } catch (e: Exception) {
-            sendToLogger(e, "Update target message likes")
-            updateMessage(messageId, retries - 1)
-        }
+            } catch (e: Exception) {
+                sendToLogger(e, "Update target message likes; Left retries: $leftRetries")
+                delay(debounceDelay)
+                leftRetries--
+            }
+        } while (leftRetries > 0)
     }
 
     private fun createMarkup(messageId: MessageIdentifier): InlineKeyboardMarkup {

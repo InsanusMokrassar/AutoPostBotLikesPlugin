@@ -74,3 +74,7 @@ Now plugin always must receive `params` object
 
 * Update version of bot to `1.0.9`
 * Fixes in `debounceByValue`
+
+### 1.0.5
+
+* Rewriting of `RatingChangedListener` to work without recursive calling
