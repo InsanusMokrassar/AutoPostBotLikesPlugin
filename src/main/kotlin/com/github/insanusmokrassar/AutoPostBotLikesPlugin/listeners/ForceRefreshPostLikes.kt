@@ -32,11 +32,12 @@ internal fun enableDetectLikesRefreshMessages(
         val message = it.data as? CommonMessage<*> ?: return@subscribe
         val userId = (message as? FromUserMessage) ?.user ?.id ?: return@subscribe
         (message.forwarded as? ForwardedFromChannelMessage) ?.let { forwarded ->
-            if (forwarded.channelChat.id == targetChatId && adminsHolder.contains(userId) && likesPluginRegisteredLikesMessagesTable.contains(message.messageId)) {
+            val originalMessageId = forwarded.messageId
+            if (forwarded.channelChat.id == targetChatId && adminsHolder.contains(userId) && likesPluginRegisteredLikesMessagesTable.contains(originalMessageId)) {
                 botWR.get() ?.executeAsync(
                     SendMessage(
                         message.chat.id,
-                        "Send me `${commandTemplate.format(forwarded.messageId)}` for force post likes update",
+                        "Send me `${commandTemplate.format(originalMessageId)}` for force post likes update",
                         MarkdownParseMode
                     )
                 )
