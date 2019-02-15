@@ -86,3 +86,8 @@ Now plugin always must receive `params` object
 ### 1.0.7
 
 * `RatingChangedListener` now use `executeUnsage`
+* Hotfix for `RatingChangedListener
+
+### 1.0.8
+
+* Fix for attach and refresh likes listeners

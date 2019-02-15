@@ -32,7 +32,7 @@ internal fun enableDetectLikesAttachmentMessages(
         val forwarded = message.forwarded
         when (forwarded) {
             is ForwardedFromChannelMessage -> {
-                if (forwarded.channelChat.id == targetChatId && adminsHolder.contains(userId)) {
+                if (forwarded.channelChat.id == targetChatId && adminsHolder.contains(userId) && !likesPluginRegisteredLikesMessagesTable.contains(message.messageId)) {
                     botWR.get() ?.executeAsync(
                         SendMessage(
                             message.chat.id,
