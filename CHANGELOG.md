@@ -91,3 +91,5 @@ Now plugin always must receive `params` object
 ### 1.0.8
 
 * Fix for attach and refresh likes listeners
+
+## 1.1.0
