@@ -4,18 +4,16 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLi
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.Group
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.debounceByValue
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.sendToLogger
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.edit.ReplyMarkup.EditChatMessageReplyMarkup
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardMarkup
+import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.debounceByValue
 import com.github.insanusmokrassar.TelegramBotAPI.utils.matrix
 import com.github.insanusmokrassar.TelegramBotAPI.utils.row
 import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeUnsafe
-import kotlinx.coroutines.delay
 import java.lang.ref.WeakReference
 
 class RatingChangedListener(
@@ -27,22 +25,21 @@ class RatingChangedListener(
     private val adaptedGroups: List<Group>
 ) {
     init {
-        likesPluginLikesTable.messageButtonsUpdatedChannel.debounceByValue(debounceDelay).subscribe {
+        likesPluginLikesTable.messageButtonsUpdatedChannel.openSubscription().debounceByValue(debounceDelay).subscribe {
             updateMessage(it)
         }
-        likesPluginRegisteredLikesMessagesTable.messageIdAllocatedChannel.subscribe {
+        likesPluginRegisteredLikesMessagesTable.messageIdAllocatedChannel.openSubscription().subscribe {
             updateMessage(it)
         }
     }
 
-    private suspend fun updateMessage(messageId: MessageIdentifier, retries: Int = 3) {
+    private suspend fun updateMessage(messageId: MessageIdentifier) {
         botWR.get() ?.executeUnsafe(
             EditChatMessageReplyMarkup(
                 chatId,
                 messageId,
                 replyMarkup = createMarkup(messageId)
-            ),
-            retries
+            )
         )
     }
 
