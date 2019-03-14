@@ -14,6 +14,7 @@ import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.Common
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.FromUserMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.content.TextContent
 import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeAsync
+import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeUnsafe
 import java.lang.ref.WeakReference
 
 private val commandRegex: Regex = Regex("^/refreshTargetLike [\\d]+$")
@@ -34,7 +35,7 @@ internal fun enableDetectLikesRefreshMessages(
         (message.forwarded as? ForwardedFromChannelMessage) ?.let { forwarded ->
             val originalMessageId = forwarded.messageId
             if (forwarded.channelChat.id == targetChatId && adminsHolder.contains(userId) && likesPluginRegisteredLikesMessagesTable.contains(originalMessageId)) {
-                botWR.get() ?.executeAsync(
+                botWR.get() ?.executeUnsafe(
                     SendMessage(
                         message.chat.id,
                         "Send me `${commandTemplate.format(originalMessageId)}` for force post likes update",
@@ -49,7 +50,7 @@ internal fun enableDetectLikesRefreshMessages(
                 if (messageId in likesPluginRegisteredLikesMessagesTable) {
                     updateChannel.send(messageId)
 
-                    botWR.get() ?.executeAsync(
+                    botWR.get() ?.executeUnsafe(
                         SendMessage(
                             message.chat.id,
                             "Likes was updated (can be showed with delay)"

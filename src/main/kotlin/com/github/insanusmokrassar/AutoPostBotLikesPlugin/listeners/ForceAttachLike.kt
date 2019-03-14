@@ -13,6 +13,7 @@ import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.Common
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.FromUserMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.content.TextContent
 import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeAsync
+import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeUnsafe
 import org.joda.time.DateTime
 import java.lang.ref.WeakReference
 
@@ -34,7 +35,7 @@ internal fun enableDetectLikesAttachmentMessages(
             is ForwardedFromChannelMessage -> {
                 val originalMessageId = forwarded.messageId
                 if (forwarded.channelChat.id == targetChatId && adminsHolder.contains(userId) && !likesPluginRegisteredLikesMessagesTable.contains(originalMessageId)) {
-                    botWR.get() ?.executeAsync(
+                    botWR.get() ?.executeUnsafe(
                         SendMessage(
                             message.chat.id,
                             "Ok, send me `${commandTemplate.format(originalMessageId)}` for attach post likes",
@@ -54,14 +55,14 @@ internal fun enableDetectLikesAttachmentMessages(
                                 DateTime.now()
                             ).also {
                                 if (it) {
-                                    botWR.get() ?.executeAsync(
+                                    botWR.get() ?.executeUnsafe(
                                         SendMessage(
                                             message.chat.id,
                                             "Likes was attached (can be showed with delay)"
                                         )
                                     )
                                 } else {
-                                    botWR.get() ?.executeAsync(
+                                    botWR.get() ?.executeUnsafe(
                                         SendMessage(
                                             message.chat.id,
                                             "Likes was not attached (can be already attached)"

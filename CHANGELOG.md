@@ -91,3 +91,9 @@ Now plugin always must receive `params` object
 ### 1.0.8
 
 * Fix for attach and refresh likes listeners
+
+## 1.1.0
+
+* Update dependencies
+* Update logic of work of `RatingChangedListener`: now by default first update for a long time will
+be displayed urgent, but all next updates in one time will be delayed with `debounceDelay`
