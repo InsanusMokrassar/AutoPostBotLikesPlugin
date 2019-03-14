@@ -23,7 +23,7 @@ class LikesPlugin(
     @Optional
     val separatedText: String = "Like? :)",
     @Optional
-    val debounceDelay: Long = 1000
+    val debounceDelay: Long = 500
 ) : Plugin {
     @Transient
     private val realGroups: List<GroupConfig> by lazy {
