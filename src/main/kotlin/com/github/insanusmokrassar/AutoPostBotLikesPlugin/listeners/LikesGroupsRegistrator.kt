@@ -22,7 +22,7 @@ class LikesGroupsRegistrator(
 ) {
     init {
         channel.subscribe { (_, messagesPairs) ->
-            registerNewLikesGroup(messagesPairs.values.toList())
+            registerNewLikesGroup(messagesPairs)
         }
     }
 
