@@ -9,15 +9,16 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 
-typealias MessageIdToDateTime = Pair<MessageIdentifier, DateTime>
+typealias MessageIdToDateTime = Pair<LikesGroupId, DateTime>
+typealias LikesGroupId = MessageIdentifier
 
 private val LikesPluginRegisteredLikesMessagesTableScope = NewDefaultCoroutineScope(1)
 
-class LikesPluginRegisteredLikesMessagesTable : Table() {
+class LikesPluginRegisteredLikesMessagesTable: Table() {
     val messageIdAllocatedChannel = BroadcastChannel<MessageIdentifier>(largeBroadcastCapacity)
     val messageIdRemovedChannel = BroadcastChannel<MessageIdentifier>(largeBroadcastCapacity)
 
-    private val messageId = long("messageId").primaryKey()
+    private val messageId: Column<LikesGroupId> = long("messageId").primaryKey()
     private val dateTime = datetime("datetime")
 
     init {
@@ -26,18 +27,18 @@ class LikesPluginRegisteredLikesMessagesTable : Table() {
         }
     }
 
-    operator fun contains(messageId: MessageIdentifier) : Boolean {
+    operator fun contains(messageId: LikesGroupId) : Boolean {
         return transaction {
             select { this@LikesPluginRegisteredLikesMessagesTable.messageId.eq(messageId) }.count() > 0
         }
     }
 
-    fun registerMessageId(messageId: MessageIdentifier, dateTime: DateTime): Boolean {
+    internal fun registerMessageId(messageId: LikesGroupId): Boolean {
         return (transaction {
             if (messageId !in this@LikesPluginRegisteredLikesMessagesTable) {
                 insert {
                     it[this@LikesPluginRegisteredLikesMessagesTable.messageId] = messageId
-                    it[this@LikesPluginRegisteredLikesMessagesTable.dateTime] = dateTime
+                    it[this@LikesPluginRegisteredLikesMessagesTable.dateTime] = DateTime.now()
                 }
                 true
             } else {
@@ -52,7 +53,7 @@ class LikesPluginRegisteredLikesMessagesTable : Table() {
         }
     }
 
-    fun unregisterMessageId(messageId: MessageIdentifier): Boolean {
+    fun unregisterMessageId(messageId: LikesGroupId): Boolean {
         return (if (messageId in this) {
             transaction {
                 deleteWhere {

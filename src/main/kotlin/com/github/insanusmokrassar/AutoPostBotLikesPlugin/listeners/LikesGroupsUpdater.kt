@@ -22,7 +22,7 @@ import java.lang.ref.WeakReference
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-class RatingChangedListener(
+class LikesGroupsUpdater(
     private val likesPluginLikesTable: LikesPluginLikesTable,
     likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
     private val botWR: WeakReference<RequestsExecutor>,
@@ -39,7 +39,7 @@ class RatingChangedListener(
             try {
                 updateMessage(messageIdentifier)
             } catch (e: Exception) {
-                commonLogger.throwing(this@RatingChangedListener::class.simpleName, "call update", e)
+                commonLogger.throwing(this@LikesGroupsUpdater::class.simpleName, "call update", e)
             }
             delay(debounceDelay)
         }
