@@ -100,4 +100,4 @@ be displayed urgent, but all next updates in one time will be delayed with `debo
 
 ### 1.1.1
 
-* Update version of bot `1.2.0` - `1.2.2`
+* Update version of bot `1.2.0` - `1.2.6`
