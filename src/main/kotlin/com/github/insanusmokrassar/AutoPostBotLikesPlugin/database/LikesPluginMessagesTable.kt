@@ -37,14 +37,13 @@ class LikesPluginMessagesTable(
         }.firstOrNull() != null
     }
 
-    fun registerMessageForLikeGroup(likesGroupId: LikesGroupId, messageIds: List<MessageIdentifier>): Boolean = transaction {
+    fun registerMessagesForLikeGroup(likesGroupId: LikesGroupId, messageIds: List<MessageIdentifier>): Boolean = transaction {
         val filtered = messageIds.filter {
             it !in this@LikesPluginMessagesTable
         }
         if (filtered.isEmpty()) {
             false
         } else {
-            likesPluginRegisteredLikesMessagesTable.registerMessageId(likesGroupId)
             var atLeastOneRegistered = false
             filtered.forEach { messageIdentifier ->
                 atLeastOneRegistered = atLeastOneRegistered || insert {
@@ -53,6 +52,10 @@ class LikesPluginMessagesTable(
                 }[id] != null
             }
             return@transaction atLeastOneRegistered
+        }
+    }.also {
+        if (it) {
+            likesPluginRegisteredLikesMessagesTable.registerMessageId(likesGroupId)
         }
     }
 

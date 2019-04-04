@@ -54,7 +54,7 @@ class LikesGroupsRegistrator(
         return messages.map {
             it.messageId
         }.let {
-            likesMessagesTable.registerMessageForLikeGroup(
+            likesMessagesTable.registerMessagesForLikeGroup(
                 messageToRegister.messageId,
                 it
             )
