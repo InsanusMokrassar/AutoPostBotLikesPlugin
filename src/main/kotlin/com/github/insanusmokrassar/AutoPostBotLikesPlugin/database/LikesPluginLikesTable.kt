@@ -2,11 +2,11 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
 
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.Mark
-import com.github.insanusmokrassar.AutoPostTelegramBot.largeBroadcastCapacity
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -19,7 +19,7 @@ private val LikesPluginLikesTableScope = NewDefaultCoroutineScope(1)
 class LikesPluginLikesTable(
     likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable
 ) : Table() {
-    val messageButtonsUpdatedChannel = BroadcastChannel<MessageIdentifier>(largeBroadcastCapacity)
+    val messageButtonsUpdatedChannel = BroadcastChannel<MessageIdentifier>(Channel.CONFLATED)
 
     private val id = integer("id").primaryKey().autoIncrement()
     private val userId = long("userId")

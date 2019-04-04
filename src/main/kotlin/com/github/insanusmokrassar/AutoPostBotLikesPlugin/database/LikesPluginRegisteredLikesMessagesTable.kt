@@ -1,9 +1,9 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
 
-import com.github.insanusmokrassar.AutoPostTelegramBot.largeBroadcastCapacity
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -15,8 +15,8 @@ typealias LikesGroupId = MessageIdentifier
 private val LikesPluginRegisteredLikesMessagesTableScope = NewDefaultCoroutineScope(1)
 
 class LikesPluginRegisteredLikesMessagesTable: Table() {
-    val messageIdAllocatedChannel = BroadcastChannel<MessageIdentifier>(largeBroadcastCapacity)
-    val messageIdRemovedChannel = BroadcastChannel<MessageIdentifier>(largeBroadcastCapacity)
+    val messageIdAllocatedChannel = BroadcastChannel<MessageIdentifier>(Channel.CONFLATED)
+    val messageIdRemovedChannel = BroadcastChannel<MessageIdentifier>(Channel.CONFLATED)
 
     private val messageId: Column<LikesGroupId> = long("messageId").primaryKey()
     private val dateTime = datetime("datetime")
