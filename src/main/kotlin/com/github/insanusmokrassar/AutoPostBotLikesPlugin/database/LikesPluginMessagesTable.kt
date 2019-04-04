@@ -46,10 +46,10 @@ class LikesPluginMessagesTable(
         } else {
             var atLeastOneRegistered = false
             filtered.forEach { messageIdentifier ->
-                atLeastOneRegistered = atLeastOneRegistered || insert {
+                atLeastOneRegistered = insert {
                     it[likesId] = likesGroupId
                     it[messageId] = messageIdentifier
-                }[id] != null
+                }[id] != null || atLeastOneRegistered
             }
             return@transaction atLeastOneRegistered
         }
