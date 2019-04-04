@@ -38,7 +38,7 @@ internal fun enableDetectLikesAttachmentMessages(
                     botWR.get() ?.executeUnsafe(
                         SendMessage(
                             message.chat.id,
-                            "Ok, reply this message and send me $commandTemplate",
+                            "Ok, reply this message and send me `$commandTemplate`",
                             MarkdownParseMode
                         )
                     )
