@@ -140,26 +140,27 @@ class LikesPluginLikesTable(
     }
 
     fun insertMarkDeleteOther(mark: Mark, otherIds: List<String>): Boolean {
+        var haveDeleted: Boolean = false
         return transaction {
             val insertAfterClean = mark !in this@LikesPluginLikesTable
 
-            val haveDeleted = deleteUserMarksOnMessage(
+            haveDeleted = deleteUserMarksOnMessage(
                 mark.messageId,
                 mark.userId,
                 otherIds
             ) > 0
 
-            (if (insertAfterClean) {
+            if (insertAfterClean) {
                 insertMark(mark)
                 true
             } else {
                 deleteMark(mark)
                 false
-            }).also {
-                if (it || haveDeleted) {
-                    LikesPluginLikesTableScope.launch {
-                        messageButtonsUpdatedChannel.send(mark.messageId)
-                    }
+            }
+        }.also {
+            if (it || haveDeleted) {
+                LikesPluginLikesTableScope.launch {
+                    messageButtonsUpdatedChannel.send(mark.messageId)
                 }
             }
         }
