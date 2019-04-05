@@ -6,6 +6,7 @@ import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscrib
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
+import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import com.github.insanusmokrassar.TelegramBotAPI.types.ParseMode.MarkdownParseMode
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.MediaGroupMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.Message
@@ -29,7 +30,6 @@ class LikesGroupsRegistrator(
     suspend fun registerNewLikesGroup(
         messages: List<Message>
     ): Boolean {
-        val bot = botWR.get() ?: return false
         val firstMessage = messages.minBy {
             it.messageId
         } ?: return false
@@ -37,27 +37,43 @@ class LikesGroupsRegistrator(
             it.messageId
         } ?: return false
 
-        val messageToRegister = if (separateAlways || (lastMessage is MediaGroupMessage)) {
-            val result = bot.execute(
-                SendMessage(
-                    chatId,
-                    separatedText,
-                    MarkdownParseMode,
-                    replyToMessageId = firstMessage.messageId
-                )
-            )
-            result.asMessage
+        val messageIdToRegister = if (separateAlways || (lastMessage is MediaGroupMessage)) {
+            registerSeparatedLike(firstMessage.messageId)
         } else {
-            lastMessage
+            registerAttachedLike(lastMessage.messageId)
         }
 
         return messages.map {
             it.messageId
         }.let {
             likesMessagesTable.registerMessagesForLikeGroup(
-                messageToRegister.messageId,
+                messageIdToRegister,
                 it
             )
+        }
+    }
+
+    suspend fun registerSeparatedLike(
+        messageId: MessageIdentifier
+    ): MessageIdentifier {
+        return likesMessagesTable.getLikesGroupId(messageId) ?: let {
+            val bot = botWR.get() ?: throw IllegalStateException("Bot was collected by GC")
+            bot.execute(
+                SendMessage(
+                    chatId,
+                    separatedText,
+                    MarkdownParseMode,
+                    replyToMessageId = messageId
+                )
+            ).asMessage.messageId
+        }
+    }
+
+    suspend fun registerAttachedLike(
+        messageId: MessageIdentifier
+    ): MessageIdentifier {
+        return likesMessagesTable.getLikesGroupId(messageId) ?: messageId.also {
+            likesMessagesTable.registerMessagesForLikeGroup(messageId, listOf(messageId))
         }
     }
 }

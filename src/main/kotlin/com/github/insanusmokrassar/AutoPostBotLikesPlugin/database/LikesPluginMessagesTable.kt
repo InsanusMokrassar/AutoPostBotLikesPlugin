@@ -22,7 +22,7 @@ class LikesPluginMessagesTable(
             likesId.eq(likesGroupId)
         }.map {
             it[messageId]
-        }
+        }.sorted()
     }
 
     operator fun contains(groupIdToMessageId: Pair<LikesGroupId, MessageIdentifier>): Boolean = transaction {
@@ -38,7 +38,12 @@ class LikesPluginMessagesTable(
     }
 
     fun registerMessagesForLikeGroup(likesGroupId: LikesGroupId, messageIds: List<MessageIdentifier>): Boolean = transaction {
-        val filtered = messageIds.filter {
+        val realMessagesIds = if (likesGroupId !in messageIds) {
+            (messageIds + likesGroupId).sorted()
+        } else {
+            messageIds
+        }
+        val filtered = realMessagesIds.filter {
             it !in this@LikesPluginMessagesTable
         }
         if (filtered.isEmpty()) {

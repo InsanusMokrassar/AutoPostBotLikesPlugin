@@ -103,3 +103,4 @@ be displayed urgent, but all next updates in one time will be delayed with `debo
 * Update version of bot `1.2.0` - `1.2.6`
 * Rewrite system of registering for messages and posts likes groups
 * Databases channels now have capacity `Channel.CONFLATED`
+* Added command `/attachSeparatedLikes`
