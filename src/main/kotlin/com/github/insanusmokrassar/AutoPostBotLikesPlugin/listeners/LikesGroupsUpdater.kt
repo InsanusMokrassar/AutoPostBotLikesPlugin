@@ -12,9 +12,9 @@ import com.github.insanusmokrassar.TelegramBotAPI.requests.edit.ReplyMarkup.Edit
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardMarkup
+import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeUnsafe
 import com.github.insanusmokrassar.TelegramBotAPI.utils.matrix
 import com.github.insanusmokrassar.TelegramBotAPI.utils.row
-import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeUnsafe
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -22,7 +22,7 @@ import java.lang.ref.WeakReference
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-class RatingChangedListener(
+class LikesGroupsUpdater(
     private val likesPluginLikesTable: LikesPluginLikesTable,
     likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
     private val botWR: WeakReference<RequestsExecutor>,
@@ -39,7 +39,7 @@ class RatingChangedListener(
             try {
                 updateMessage(messageIdentifier)
             } catch (e: Exception) {
-                commonLogger.throwing(this@RatingChangedListener::class.simpleName, "call update", e)
+                commonLogger.throwing(this@LikesGroupsUpdater::class.simpleName, "call update", e)
             }
             delay(debounceDelay)
         }

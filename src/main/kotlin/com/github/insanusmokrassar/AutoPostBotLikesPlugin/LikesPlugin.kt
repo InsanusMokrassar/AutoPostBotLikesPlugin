@@ -1,7 +1,6 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin
 
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
@@ -55,6 +54,8 @@ class LikesPlugin(
     val likesPluginRegisteredLikesMessagesTable = LikesPluginRegisteredLikesMessagesTable()
     @Transient
     val likesPluginLikesTable = LikesPluginLikesTable(likesPluginRegisteredLikesMessagesTable)
+    @Transient
+    val likesPluginMessagesTable = LikesPluginMessagesTable(likesPluginRegisteredLikesMessagesTable)
 
     override suspend fun onInit(executor: RequestsExecutor, baseConfig: FinalConfig, pluginManager: PluginManager) {
         super.onInit(executor, baseConfig, pluginManager)
@@ -62,16 +63,16 @@ class LikesPlugin(
 
         val botWR = WeakReference(executor)
 
-        MessagePostedListener(
+        val registrator = LikesGroupsRegistrator(
             publisher.postPublishedChannel,
-            likesPluginRegisteredLikesMessagesTable,
+            likesPluginMessagesTable,
             baseConfig.targetChatId,
             separateAlways,
             separatedText,
             botWR
         )
 
-        RatingChangedListener(
+        LikesGroupsUpdater(
             likesPluginLikesTable,
             likesPluginRegisteredLikesMessagesTable,
             botWR,
@@ -102,7 +103,8 @@ class LikesPlugin(
         enableDetectLikesAttachmentMessages(
             adminsHolder,
             baseConfig.targetChatId,
-            likesPluginRegisteredLikesMessagesTable,
+            likesPluginMessagesTable,
+            registrator,
             botWR
         )
 

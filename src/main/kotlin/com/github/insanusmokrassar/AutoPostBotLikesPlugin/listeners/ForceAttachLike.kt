@@ -1,6 +1,6 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
+import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
 import com.github.insanusmokrassar.AutoPostTelegramBot.allMessagesListener
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
@@ -12,65 +12,71 @@ import com.github.insanusmokrassar.TelegramBotAPI.types.message.ForwardedFromCha
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.CommonMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.FromUserMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.content.TextContent
-import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeAsync
 import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeUnsafe
-import org.joda.time.DateTime
 import java.lang.ref.WeakReference
 
-private val commandRegex: Regex = Regex("^/attachTargetLike [\\d]+$")
-private const val commandTemplate: String = "/attachTargetLike %d"
+private val attachRegex: Regex = Regex("^/attachLikes$")
+private val attachSeparatedRegex: Regex = Regex("^/attachSeparatedLikes$")
+private const val attachTemplate: String = "/attachLikes"
+private const val attachSeparatedTemplate: String = "/attachSeparatedLikes"
 
 internal fun enableDetectLikesAttachmentMessages(
     adminsHolder: AdminsHolder,
     targetChatId: ChatId,
-    likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
+    likesPluginMessagesTable: LikesPluginMessagesTable,
+    likesGroupsRegistrator: LikesGroupsRegistrator,
     botWR: WeakReference<RequestsExecutor>
 ) {
     allMessagesListener.subscribe {
         val message = it.data as? CommonMessage<*> ?: return@subscribe
         val userId = (message as? FromUserMessage) ?.user ?.id ?: return@subscribe
 
-        val forwarded = message.forwarded
-        when (forwarded) {
-            is ForwardedFromChannelMessage -> {
-                val originalMessageId = forwarded.messageId
-                if (forwarded.channelChat.id == targetChatId && adminsHolder.contains(userId) && !likesPluginRegisteredLikesMessagesTable.contains(originalMessageId)) {
-                    botWR.get() ?.executeUnsafe(
-                        SendMessage(
-                            message.chat.id,
-                            "Ok, send me `${commandTemplate.format(originalMessageId)}` for attach post likes",
-                            MarkdownParseMode
-                        )
-                    )
-                }
-            }
-            else -> {
-                (message.content as? TextContent) ?.also {
-                    if (commandRegex.matches(it.text) && adminsHolder.contains(userId)) {
-                        val messageId = it.text.split(" ")[1].toLong()
+        (message.forwarded as? ForwardedFromChannelMessage) ?.let { forwarded ->
 
-                        if (messageId !in likesPluginRegisteredLikesMessagesTable) {
-                            likesPluginRegisteredLikesMessagesTable.registerMessageId(
-                                messageId,
-                                DateTime.now()
-                            ).also {
-                                if (it) {
-                                    botWR.get() ?.executeUnsafe(
-                                        SendMessage(
-                                            message.chat.id,
-                                            "Likes was attached (can be showed with delay)"
-                                        )
-                                    )
-                                } else {
-                                    botWR.get() ?.executeUnsafe(
-                                        SendMessage(
-                                            message.chat.id,
-                                            "Likes was not attached (can be already attached)"
-                                        )
-                                    )
-                                }
-                            }
-                        }
+            val originalMessageId = forwarded.messageId
+            if (forwarded.channelChat.id == targetChatId && adminsHolder.contains(userId) && !likesPluginMessagesTable.contains(originalMessageId)) {
+                botWR.get() ?.executeUnsafe(
+                    SendMessage(
+                        message.chat.id,
+                        "Ok, reply this message and send me `$attachTemplate` OR `$attachSeparatedTemplate` to attach with separated message",
+                        MarkdownParseMode,
+                        replyToMessageId = message.messageId
+                    )
+                )
+            }
+
+        } ?: (message.content as? TextContent) ?.let {
+
+            val reply = message.replyTo as? CommonMessage<*> ?: return@let
+            if (!adminsHolder.contains(userId)) {
+                return@let
+            }
+            val text = it.text
+            val realForwarded = reply.forwarded as? ForwardedFromChannelMessage ?: return@let
+
+            if (realForwarded.channelChat.id == targetChatId && realForwarded.messageId !in likesPluginMessagesTable) {
+                when {
+                    attachRegex.matches(text) -> {
+                        likesGroupsRegistrator.registerAttachedLike(
+                            realForwarded.messageId
+                        )
+                        botWR.get() ?.executeUnsafe(
+                            SendMessage(
+                                message.chat.id,
+                                "Likes was attached (can be shown with delay)"
+                            )
+                        )
+                    }
+                    attachSeparatedRegex.matches(text) -> {
+                        likesGroupsRegistrator.registerSeparatedLike(
+                            realForwarded.messageId
+                        )
+                        botWR.get() ?.executeUnsafe(
+                            SendMessage(
+                                message.chat.id,
+                                "Likes was attached by separated message (can be shown with delay)"
+                            )
+                        )
                     }
                 }
             }
