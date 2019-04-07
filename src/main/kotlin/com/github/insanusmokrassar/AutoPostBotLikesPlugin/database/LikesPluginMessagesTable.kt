@@ -1,5 +1,6 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
 
+import com.github.insanusmokrassar.TelegramBotAPI.types.MediaGroupIdentifier
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -10,6 +11,7 @@ class LikesPluginMessagesTable(
     private val id = long("id").primaryKey().autoIncrement()
     private val likesId: Column<LikesGroupId> = long("likesId")
     private val messageId: Column<MessageIdentifier> = long("messageId").uniqueIndex()
+    private val groupId: Column<MediaGroupIdentifier?> = text("groupId").nullable()
 
     init {
         transaction {
@@ -17,12 +19,14 @@ class LikesPluginMessagesTable(
         }
     }
 
-    operator fun get(likesGroupId: LikesGroupId): List<MessageIdentifier> = transaction {
+    operator fun get(likesGroupId: LikesGroupId): List<Pair<MessageIdentifier, MediaGroupIdentifier?>> = transaction {
         select {
             likesId.eq(likesGroupId)
-        }.map {
-            it[messageId]
-        }.sorted()
+        }.asSequence().map {
+            it[messageId] to it[groupId]
+        }.sortedBy {
+            it.first
+        }.toList()
     }
 
     operator fun contains(groupIdToMessageId: Pair<LikesGroupId, MessageIdentifier>): Boolean = transaction {
@@ -37,7 +41,11 @@ class LikesPluginMessagesTable(
         }.firstOrNull() != null
     }
 
-    fun registerMessagesForLikeGroup(likesGroupId: LikesGroupId, messageIds: List<MessageIdentifier>): Boolean = transaction {
+    fun registerMessagesForLikeGroup(
+        likesGroupId: LikesGroupId,
+        messageIds: List<MessageIdentifier>,
+        mediaGroups: Map<MessageIdentifier, MediaGroupIdentifier>/* = emptyMap()*/
+    ): Boolean = transaction {
         val realMessagesIds = if (likesGroupId !in messageIds) {
             (messageIds + likesGroupId).sorted()
         } else {
@@ -54,6 +62,7 @@ class LikesPluginMessagesTable(
                 atLeastOneRegistered = insert {
                     it[likesId] = likesGroupId
                     it[messageId] = messageIdentifier
+                    it[groupId] = mediaGroups[messageIdentifier]
                 }[id] != null || atLeastOneRegistered
             }
             return@transaction atLeastOneRegistered

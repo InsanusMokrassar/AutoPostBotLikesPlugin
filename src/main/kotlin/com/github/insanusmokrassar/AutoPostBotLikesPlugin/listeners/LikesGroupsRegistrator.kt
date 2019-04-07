@@ -48,7 +48,12 @@ class LikesGroupsRegistrator(
         }.let {
             likesMessagesTable.registerMessagesForLikeGroup(
                 messageIdToRegister,
-                it
+                it,
+                messages.mapNotNull { message ->
+                    (message as? MediaGroupMessage) ?.let { asMediaGroupMessage ->
+                        asMediaGroupMessage.messageId to asMediaGroupMessage.mediaGroupId
+                    }
+                }.toMap()
             )
         }
     }
@@ -58,7 +63,7 @@ class LikesGroupsRegistrator(
     ): MessageIdentifier {
         return likesMessagesTable.getLikesGroupId(messageId) ?: let {
             val bot = botWR.get() ?: throw IllegalStateException("Bot was collected by GC")
-            bot.execute(
+            val registeredMessage = bot.execute(
                 SendMessage(
                     chatId,
                     separatedText,
@@ -66,6 +71,16 @@ class LikesGroupsRegistrator(
                     replyToMessageId = messageId
                 )
             ).asMessage.messageId
+            val registered = likesMessagesTable.registerMessagesForLikeGroup(
+                registeredMessage,
+                listOf(messageId),
+                emptyMap()
+            )
+            if (registered) {
+                registeredMessage
+            } else {
+                throw IllegalStateException("Can't register message identifier")
+            }
         }
     }
 
@@ -73,7 +88,7 @@ class LikesGroupsRegistrator(
         messageId: MessageIdentifier
     ): MessageIdentifier {
         return likesMessagesTable.getLikesGroupId(messageId) ?: messageId.also {
-            likesMessagesTable.registerMessagesForLikeGroup(messageId, listOf(messageId))
+            likesMessagesTable.registerMessagesForLikeGroup(messageId, listOf(messageId), emptyMap())
         }
     }
 }
