@@ -15,13 +15,9 @@ import java.lang.ref.WeakReference
 @Serializable
 class LikesPlugin(
     val buttons: List<ButtonConfig>,
-    @Optional
     private val groups: List<GroupConfig> = emptyList(),
-    @Optional
     val separateAlways: Boolean = false,
-    @Optional
     val separatedText: String = "Like? :)",
-    @Optional
     val debounceDelay: Long = 500
 ) : Plugin {
     @Transient
