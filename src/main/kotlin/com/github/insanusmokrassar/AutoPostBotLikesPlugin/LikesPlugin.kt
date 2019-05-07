@@ -77,11 +77,9 @@ class LikesPlugin(
             adaptedGroups
         )
 
-        adaptedGroups.map {
-                group ->
-            group.items.map {
-                    button ->
-                MarkListener(
+        adaptedGroups.map { group ->
+            group.items.map { button ->
+                enableMarksListener(
                     baseConfig.targetChatId,
                     likesPluginLikesTable,
                     button,

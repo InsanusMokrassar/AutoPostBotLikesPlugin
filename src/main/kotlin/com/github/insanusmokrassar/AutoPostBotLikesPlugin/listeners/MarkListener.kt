@@ -22,46 +22,43 @@ fun createMarkButton(buttonConfig: ButtonConfig, buttonMark: ButtonMark): Inline
     markCallbackData.format(buttonConfig.id)
 )
 
-class MarkListener(
+fun enableMarksListener(
     targetChatId: ChatId,
     likesPluginLikesTable: LikesPluginLikesTable,
     button: ButtonConfig,
     botWR: WeakReference<RequestsExecutor>,
-    private val radioGroupIds: List<String>? = null
+    radioGroupIds: List<String>? = null
 ) {
-    private val buttonId: String = button.id
+    val buttonId: String = button.id
 
-    init {
-        allCallbackQueryListener.subscribeChecking {
-            val query = it.data as? MessageDataCallbackQuery ?: return@subscribeChecking true
-            val bot = botWR.get() ?: return@subscribeChecking false
-            val chatId = query.message.chat.id
-            val data = query.data
-            if (chatId == targetChatId && data.startsWith(like_plugin_data) && data.split(" ")[1] == buttonId) {
-                val messageId = query.message.messageId
-                val userId = query.user.id
+    allCallbackQueryListener.subscribeChecking {
+        val query = it.data as? MessageDataCallbackQuery ?: return@subscribeChecking true
+        val bot = botWR.get() ?: return@subscribeChecking false
+        val chatId = query.message.chat.id
+        val data = query.data
+        if (chatId == targetChatId && data.startsWith(like_plugin_data) && data.split(" ")[1] == buttonId) {
+            val messageId = query.message.messageId
+            val userId = query.user.id
 
-                val mark = Mark(userId.chatId, messageId, buttonId)
+            val mark = Mark(userId.chatId, messageId, buttonId)
 
-                val marked = radioGroupIds ?.let {
-                    radioButtonsIds ->
-                    likesPluginLikesTable.insertMarkDeleteOther(
-                        mark,
-                        radioButtonsIds
-                    )
-                } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
-
-                bot.execute(
-                    query.createAnswer(
-                        if (marked) {
-                            button.positiveAnswer ?.text ?: ""
-                        } else {
-                            button.negativeAnswer ?.text ?: ""
-                        }
-                    )
+            val marked = radioGroupIds ?.let { radioButtonsIds ->
+                likesPluginLikesTable.insertMarkDeleteOther(
+                    mark,
+                    radioButtonsIds
                 )
-            }
-            true
+            } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
+
+            bot.execute(
+                query.createAnswer(
+                    if (marked) {
+                        button.positiveAnswer ?.text ?: ""
+                    } else {
+                        button.negativeAnswer ?.text ?: ""
+                    }
+                )
+            )
         }
+        true
     }
 }

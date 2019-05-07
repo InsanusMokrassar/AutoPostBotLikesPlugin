@@ -111,3 +111,10 @@ be displayed urgent, but all next updates in one time will be delayed with `debo
 * `kotlin coroutines` version `1.1.1` -> `1.2.0`
 * `kotlin serialization` version `0.10.0` -> `0.11.0`
 * `AutoPostTelegramBot` version `1.2.6` -> `1.2.7`
+
+## 1.3.0
+
+* `kotlin` version `1.3.30` -> `1.3.31`
+* `kotlin coroutines` version `1.2.0` -> `1.2.1`
+* `AutoPostTelegramBot` version `1.2.7` -> `1.3.0`
+* `MarkListener` rewritten to be a function
