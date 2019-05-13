@@ -119,6 +119,10 @@ be displayed urgent, but all next updates in one time will be delayed with `debo
 * `AutoPostTelegramBot` version `1.2.7` -> `1.3.0`
 * `MarkListener` rewritten to be a function
 
-## 1.3.1
+### 1.3.1
 
 * `AutoPostTelegramBot` version `1.3.0` -> `1.3.1`
+
+### 1.3.2
+
+* `AutoPostTelegramBot` version `1.3.1` -> `1.3.2`
