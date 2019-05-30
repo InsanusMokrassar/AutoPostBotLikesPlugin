@@ -126,3 +126,8 @@ be displayed urgent, but all next updates in one time will be delayed with `debo
 ### 1.3.2
 
 * `AutoPostTelegramBot` version `1.3.1` -> `1.3.2`
+
+## 1.4.0
+
+* `AutoPostTelegramBot` version `1.3.2` -> `1.4.0`
+* Updates table buttons building

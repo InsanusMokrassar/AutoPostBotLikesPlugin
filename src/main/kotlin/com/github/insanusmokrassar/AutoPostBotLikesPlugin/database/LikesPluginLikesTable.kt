@@ -222,22 +222,22 @@ class LikesPluginLikesTable(
     fun getMessageButtonMarks(messageId: MessageIdentifier): List<ButtonMark> {
         val mapOfButtonsCount = HashMap<String, Int>()
 
-        return transaction {
+        transaction {
             select {
                 this@LikesPluginLikesTable.messageId.eq(
                     messageId
                 )
             }.forEach {
-                mapOfButtonsCount[it.buttonId] = mapOfButtonsCount[it.buttonId] ?.plus(1) ?: 1
+                mapOfButtonsCount[it.buttonId] = (mapOfButtonsCount[it.buttonId] ?: 0) + 1
             }
-            mapOfButtonsCount.map {
-                (buttonId, count) ->
-                ButtonMark(
-                    messageId,
-                    buttonId,
-                    count
-                )
-            }
+        }
+
+        return mapOfButtonsCount.map { (buttonId, count) ->
+            ButtonMark(
+                messageId,
+                buttonId,
+                count
+            )
         }
     }
 }

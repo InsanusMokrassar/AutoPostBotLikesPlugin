@@ -9,6 +9,8 @@ import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.Plugin
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.PluginManager
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostPublisher
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.*
 import java.lang.ref.WeakReference
 
@@ -20,6 +22,9 @@ class LikesPlugin(
     val separatedText: String = "Like? :)",
     val debounceDelay: Long = 500
 ) : Plugin {
+    @Transient
+    private val scope = CoroutineScope(Dispatchers.Default)
+
     @Transient
     private val realGroups: List<GroupConfig> by lazy {
         if (groups.isEmpty()) {
@@ -79,7 +84,7 @@ class LikesPlugin(
 
         adaptedGroups.map { group ->
             group.items.map { button ->
-                enableMarksListener(
+                scope.enableMarksListener(
                     baseConfig.targetChatId,
                     likesPluginLikesTable,
                     button,
@@ -94,7 +99,7 @@ class LikesPlugin(
             baseConfig.targetChatId
         )
 
-        enableDetectLikesAttachmentMessages(
+        scope.enableDetectLikesAttachmentMessages(
             adminsHolder,
             baseConfig.targetChatId,
             likesPluginMessagesTable,
@@ -102,7 +107,7 @@ class LikesPlugin(
             botWR
         )
 
-        enableDetectLikesRefreshMessages(
+        scope.enableDetectLikesRefreshMessages(
             adminsHolder,
             baseConfig.targetChatId,
             likesPluginLikesTable,
