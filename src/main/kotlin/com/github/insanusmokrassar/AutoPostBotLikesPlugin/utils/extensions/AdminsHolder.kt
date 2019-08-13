@@ -4,7 +4,7 @@ import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutine
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.chat.get.GetChatAdministrators
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
-import com.github.insanusmokrassar.TelegramBotAPI.types.ChatMember.AdministratorChatMember
+import com.github.insanusmokrassar.TelegramBotAPI.types.ChatMember.abstracts.AdministratorChatMember
 import com.github.insanusmokrassar.TelegramBotAPI.types.UserId
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
