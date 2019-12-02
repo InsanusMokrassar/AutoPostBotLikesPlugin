@@ -34,7 +34,7 @@ class AdminsHolder(
                 admins.clear()
                 admins.addAll(
                     adminsResponse.mapNotNull {
-                        it.asChatMember as? AdministratorChatMember
+                        it as? AdministratorChatMember
                     }
                 )
             }

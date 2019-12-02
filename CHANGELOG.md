@@ -133,3 +133,11 @@ be displayed urgent, but all next updates in one time will be delayed with `debo
 * Updates table buttons building
 
 ## 1.5.0
+
+## 1.6.0
+
+* Versions update:
+    * Kotlin `1.3.41` -> `1.3.61`
+    * Coroutines `1.2.2` -> inherited
+    * Serialization `0.11.1` -> inherited
+    * AutoPostTelegramBot `1.5.1` -> `1.6.0`
