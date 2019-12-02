@@ -70,7 +70,7 @@ class LikesGroupsRegistrator(
                     MarkdownParseMode,
                     replyToMessageId = messageId
                 )
-            ).asMessage.messageId
+            ).messageId
             val registered = likesMessagesTable.registerMessagesForLikeGroup(
                 registeredMessage,
                 listOf(messageId),
