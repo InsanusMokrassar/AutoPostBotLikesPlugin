@@ -1,6 +1,7 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginMessagesTable
+import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostIdListPostMessagesTelegramMessages
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
@@ -10,7 +11,9 @@ import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import com.github.insanusmokrassar.TelegramBotAPI.types.ParseMode.MarkdownParseMode
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.MediaGroupMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.Message
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.flow.*
 import java.lang.ref.WeakReference
 
 class LikesGroupsRegistrator(
@@ -19,11 +22,20 @@ class LikesGroupsRegistrator(
     private val chatId: ChatId,
     private val separateAlways: Boolean,
     private val separatedText: String,
-    private val botWR: WeakReference<RequestsExecutor>
+    private val botWR: WeakReference<RequestsExecutor>,
+    scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
 ) {
     init {
-        channel.subscribe { (_, messagesPairs) ->
-            registerNewLikesGroup(messagesPairs)
+        scope.launch {
+            channel.asFlow().catch { e ->
+                commonLogger.throwing(
+                    "LikesGroupsRegistrator",
+                    "Registering of published post",
+                    e
+                )
+            }.collect { (_, messagesPairs) ->
+                registerNewLikesGroup(messagesPairs)
+            }
         }
     }
 
@@ -84,7 +96,7 @@ class LikesGroupsRegistrator(
         }
     }
 
-    suspend fun registerAttachedLike(
+    fun registerAttachedLike(
         messageId: MessageIdentifier
     ): MessageIdentifier {
         return likesMessagesTable.getLikesGroupId(messageId) ?: messageId.also {

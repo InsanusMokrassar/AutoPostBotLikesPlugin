@@ -70,7 +70,8 @@ class LikesPlugin(
             baseConfig.targetChatId,
             separateAlways,
             separatedText,
-            botWR
+            botWR,
+            scope
         )
 
         LikesGroupsUpdater(
