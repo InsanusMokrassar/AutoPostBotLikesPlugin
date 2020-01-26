@@ -15,13 +15,17 @@ import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardMa
 import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeUnsafe
 import com.github.insanusmokrassar.TelegramBotAPI.utils.matrix
 import com.github.insanusmokrassar.TelegramBotAPI.utils.row
+import com.soywiz.klock.DateTime
+import com.soywiz.klock.TimeSpan
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.launch
 import java.lang.ref.WeakReference
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
+
+private sealed class UpdateCommand()
+
+private class PendingUpdate(val messageId: MessageIdentifier)
+private class CallUpdate(val messageId: MessageIdentifier)
 
 class LikesGroupsUpdater(
     private val likesPluginLikesTable: LikesPluginLikesTable,
@@ -29,22 +33,32 @@ class LikesGroupsUpdater(
     private val botWR: WeakReference<RequestsExecutor>,
     private val chatId: ChatId,
     private val debounceDelay: Long,
-    private val adaptedGroups: List<Group>
+    private val adaptedGroups: List<Group>,
+    scope: CoroutineScope
 ) {
-    private val scope = NewDefaultCoroutineScope(4)
-    private val pendingUpdatesChannel: Channel<Unit> = Channel(Channel.CONFLATED)
-    private val pendingUpdatesQueue: MutableSet<MessageIdentifier> = Collections.newSetFromMap(ConcurrentHashMap())
+    private val pendingUpdatesQueue: Channel<MessageIdentifier> = Channel()
     private val updateCaller = scope.launch {
-        for (messageIdentifier in pendingUpdatesChannel) {
-            while (pendingUpdatesQueue.isNotEmpty()) {
-                val toUpdate = pendingUpdatesQueue.max() ?: continue
-                pendingUpdatesQueue.remove(toUpdate)
-                try {
-                    updateMessage(toUpdate)
-                } catch (e: Exception) {
-                    commonLogger.throwing(this@LikesGroupsUpdater::class.simpleName, "call update", e)
+        val updateCalls = mutableMapOf<MessageIdentifier, Job>()
+        val times = mutableMapOf<MessageIdentifier, Long>()
+        for (messageIdentifier in pendingUpdatesQueue) {
+            times[messageIdentifier] = System.currentTimeMillis() + debounceDelay
+            updateCalls.getOrPut(messageIdentifier) {
+                launch {
+                    try {
+                        var timeToSleep = times[messageIdentifier] ?.minus(System.currentTimeMillis()) ?: 0
+                        while (timeToSleep > 0) {
+                            delay(timeToSleep)
+                            timeToSleep = times[messageIdentifier] ?.minus(System.currentTimeMillis()) ?: 0
+                        }
+                        updateCalls[messageIdentifier] = launch {
+                            updateMessage(messageIdentifier)
+                            updateCalls.remove(messageIdentifier)
+                        }
+                        times.remove(messageIdentifier)
+                    } catch (e: Exception) {
+                        commonLogger.throwing(this@LikesGroupsUpdater::class.simpleName, "call update", e)
+                    }
                 }
-                delay(debounceDelay)
             }
         }
     }
@@ -65,9 +79,7 @@ class LikesGroupsUpdater(
     }
 
     private suspend fun pendingUpdate(messageId: MessageIdentifier) {
-        if (pendingUpdatesQueue.add(messageId)) {
-            pendingUpdatesChannel.send(Unit)
-        }
+        pendingUpdatesQueue.send(messageId)
     }
 
     private suspend fun updateMessage(messageId: MessageIdentifier) {

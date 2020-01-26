@@ -6,7 +6,8 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class LikesPluginMessagesTable(
-    private val likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable = LikesPluginRegisteredLikesMessagesTable()
+    private val database: Database,
+    private val likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable = LikesPluginRegisteredLikesMessagesTable(database)
 ) : Table() {
     private val id = long("id").primaryKey().autoIncrement()
     private val likesId: Column<LikesGroupId> = long("likesId")
@@ -14,12 +15,12 @@ class LikesPluginMessagesTable(
     private val groupId: Column<MediaGroupIdentifier?> = text("groupId").nullable()
 
     init {
-        transaction {
+        transaction(database) {
             SchemaUtils.createMissingTablesAndColumns(this@LikesPluginMessagesTable)
         }
     }
 
-    operator fun get(likesGroupId: LikesGroupId): List<Pair<MessageIdentifier, MediaGroupIdentifier?>> = transaction {
+    operator fun get(likesGroupId: LikesGroupId): List<Pair<MessageIdentifier, MediaGroupIdentifier?>> = transaction(database) {
         select {
             likesId.eq(likesGroupId)
         }.asSequence().map {
@@ -29,13 +30,13 @@ class LikesPluginMessagesTable(
         }.toList()
     }
 
-    operator fun contains(groupIdToMessageId: Pair<LikesGroupId, MessageIdentifier>): Boolean = transaction {
+    operator fun contains(groupIdToMessageId: Pair<LikesGroupId, MessageIdentifier>): Boolean = transaction(database) {
         select {
             likesId.eq(groupIdToMessageId.first).and(messageId.eq(groupIdToMessageId.second))
         }.firstOrNull() != null
     }
 
-    operator fun contains(messageId: MessageIdentifier): Boolean = transaction {
+    operator fun contains(messageId: MessageIdentifier): Boolean = transaction(database) {
         select {
             this@LikesPluginMessagesTable.messageId.eq(messageId)
         }.firstOrNull() != null
@@ -45,7 +46,7 @@ class LikesPluginMessagesTable(
         likesGroupId: LikesGroupId,
         messageIds: List<MessageIdentifier>,
         mediaGroups: Map<MessageIdentifier, MediaGroupIdentifier>/* = emptyMap()*/
-    ): Boolean = transaction {
+    ): Boolean = transaction(database) {
         val realMessagesIds = if (likesGroupId !in messageIds) {
             (messageIds + likesGroupId).sorted()
         } else {
@@ -73,7 +74,7 @@ class LikesPluginMessagesTable(
         }
     }
 
-    fun getLikesGroupId(messageId: MessageIdentifier): LikesGroupId? = transaction {
+    fun getLikesGroupId(messageId: MessageIdentifier): LikesGroupId? = transaction(database) {
         select {
             this@LikesPluginMessagesTable.messageId.eq(messageId)
         }.firstOrNull() ?.get(likesId)

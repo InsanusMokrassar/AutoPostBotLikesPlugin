@@ -17,7 +17,8 @@ import org.joda.time.DateTime
 private val LikesPluginLikesTableScope = NewDefaultCoroutineScope(1)
 
 class LikesPluginLikesTable(
-    likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable
+    likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable,
+    private val database: Database
 ) : Table() {
     val messageButtonsUpdatedChannel = BroadcastChannel<MessageIdentifier>(Channel.CONFLATED)
 
@@ -37,11 +38,11 @@ class LikesPluginLikesTable(
         get() = get(this@LikesPluginLikesTable.userId)
 
     init {
-        transaction {
+        transaction(database) {
             SchemaUtils.createMissingTablesAndColumns(this@LikesPluginLikesTable)
         }
         likesPluginRegisteredLikesMessagesTable.messageIdRemovedChannel.subscribe {
-            transaction {
+            transaction(database) {
                 deleteWhere {
                     messageId.eq(it)
                 }
@@ -50,7 +51,7 @@ class LikesPluginLikesTable(
     }
 
     operator fun contains(mark: Mark): Boolean {
-        return transaction {
+        return transaction(database) {
             select {
                 makeSelectStatement(mark)
             }.count() > 0
@@ -72,7 +73,7 @@ class LikesPluginLikesTable(
     }
 
     private fun insertMark(mark: Mark): Boolean {
-        return transaction {
+        return transaction(database) {
             if (contains(mark)) {
                 false
             } else {
@@ -93,7 +94,7 @@ class LikesPluginLikesTable(
     }
 
     private fun deleteMark(mark: Mark): Boolean {
-        return transaction {
+        return transaction(database) {
             deleteWhere {
                 makeSelectStatement(mark)
             } > 0
@@ -107,7 +108,7 @@ class LikesPluginLikesTable(
     }
 
     private fun deleteUserMarksOnMessage(messageId: MessageIdentifier, userId: Long, buttonIds: List<String>?): Int {
-        return transaction {
+        return transaction(database) {
             this@LikesPluginLikesTable.userId.eq(
                 userId
             ).and(
@@ -130,7 +131,7 @@ class LikesPluginLikesTable(
     }
 
     fun insertOrDeleteMark(mark: Mark): Boolean {
-        return transaction {
+        return transaction(database) {
             if (!insertMark(mark)) {
                 deleteMark(mark)
             } else {
@@ -141,7 +142,7 @@ class LikesPluginLikesTable(
 
     fun insertMarkDeleteOther(mark: Mark, otherIds: List<String>): Boolean {
         var haveDeleted: Boolean = false
-        return transaction {
+        return transaction(database) {
             val insertAfterClean = mark !in this@LikesPluginLikesTable
 
             haveDeleted = deleteUserMarksOnMessage(
@@ -167,7 +168,7 @@ class LikesPluginLikesTable(
     }
 
     fun userMarksOnMessage(messageId: MessageIdentifier, userId: Long): List<Mark> {
-        return transaction {
+        return transaction(database) {
             select {
                 this@LikesPluginLikesTable.messageId.eq(
                     messageId
@@ -187,7 +188,7 @@ class LikesPluginLikesTable(
     }
 
     fun marksOfMessage(messageId: MessageIdentifier): List<Mark> {
-        return transaction {
+        return transaction(database) {
             select {
                 this@LikesPluginLikesTable.messageId.eq(messageId)
             }.map {
@@ -201,7 +202,7 @@ class LikesPluginLikesTable(
     }
 
     fun getMessageButtonMark(messageId: MessageIdentifier, buttonId: String): ButtonMark {
-        return transaction {
+        return transaction(database) {
             select {
                 this@LikesPluginLikesTable.messageId.eq(
                     messageId
@@ -222,7 +223,7 @@ class LikesPluginLikesTable(
     fun getMessageButtonMarks(messageId: MessageIdentifier): List<ButtonMark> {
         val mapOfButtonsCount = HashMap<String, Int>()
 
-        transaction {
+        transaction(database) {
             select {
                 this@LikesPluginLikesTable.messageId.eq(
                     messageId

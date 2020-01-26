@@ -14,7 +14,9 @@ typealias LikesGroupId = MessageIdentifier
 
 private val LikesPluginRegisteredLikesMessagesTableScope = NewDefaultCoroutineScope(1)
 
-class LikesPluginRegisteredLikesMessagesTable: Table() {
+class LikesPluginRegisteredLikesMessagesTable(
+    private val database: Database
+): Table() {
     val messageIdAllocatedChannel = BroadcastChannel<MessageIdentifier>(Channel.CONFLATED)
     val messageIdRemovedChannel = BroadcastChannel<MessageIdentifier>(Channel.CONFLATED)
 
@@ -22,19 +24,19 @@ class LikesPluginRegisteredLikesMessagesTable: Table() {
     private val dateTime = datetime("datetime")
 
     init {
-        transaction {
+        transaction(database) {
             SchemaUtils.createMissingTablesAndColumns(this@LikesPluginRegisteredLikesMessagesTable)
         }
     }
 
     operator fun contains(messageId: LikesGroupId) : Boolean {
-        return transaction {
+        return transaction(database) {
             select { this@LikesPluginRegisteredLikesMessagesTable.messageId.eq(messageId) }.count() > 0
         }
     }
 
     internal fun registerMessageId(messageId: LikesGroupId): Boolean {
-        return (transaction {
+        return (transaction(database) {
             if (messageId !in this@LikesPluginRegisteredLikesMessagesTable) {
                 insert {
                     it[this@LikesPluginRegisteredLikesMessagesTable.messageId] = messageId
@@ -55,7 +57,7 @@ class LikesPluginRegisteredLikesMessagesTable: Table() {
 
     fun unregisterMessageId(messageId: LikesGroupId): Boolean {
         return (if (messageId in this) {
-            transaction {
+            transaction(database) {
                 deleteWhere {
                     this@LikesPluginRegisteredLikesMessagesTable.messageId.eq(messageId)
                 } > 0
@@ -72,7 +74,7 @@ class LikesPluginRegisteredLikesMessagesTable: Table() {
     }
 
     fun getAllRegistered(): List<MessageIdToDateTime> {
-        return transaction {
+        return transaction(database) {
             selectAll().map {
                 MessageIdToDateTime(
                     it[messageId],
@@ -86,7 +88,7 @@ class LikesPluginRegisteredLikesMessagesTable: Table() {
         from: DateTime = DateTime(0L),
         to: DateTime = DateTime.now()
     ): List<MessageIdToDateTime> {
-        return transaction {
+        return transaction(database) {
             select {
                 dateTime.between(from, to)
             }.map {

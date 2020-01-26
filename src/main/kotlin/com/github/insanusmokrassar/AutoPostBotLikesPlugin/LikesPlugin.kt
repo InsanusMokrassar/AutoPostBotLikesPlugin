@@ -4,26 +4,28 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
+import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.DatabaseConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.FinalConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.Plugin
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.PluginManager
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostPublisher
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.serialization.*
 import java.lang.ref.WeakReference
+import java.util.concurrent.Executors
 
 @Serializable
 class LikesPlugin(
     val buttons: List<ButtonConfig>,
+    val databaseConfig: DatabaseConfig,
     private val groups: List<GroupConfig> = emptyList(),
     val separateAlways: Boolean = false,
     val separatedText: String = "Like? :)",
     val debounceDelay: Long = 500
 ) : Plugin {
     @Transient
-    private val scope = CoroutineScope(Dispatchers.Default)
+    private val scope = CoroutineScope(Executors.newCachedThreadPool().asCoroutineDispatcher())
 
     @Transient
     private val realGroups: List<GroupConfig> by lazy {
@@ -52,11 +54,14 @@ class LikesPlugin(
     }
 
     @Transient
-    val likesPluginRegisteredLikesMessagesTable = LikesPluginRegisteredLikesMessagesTable()
+    private val database = databaseConfig.connect()
+
     @Transient
-    val likesPluginLikesTable = LikesPluginLikesTable(likesPluginRegisteredLikesMessagesTable)
+    val likesPluginRegisteredLikesMessagesTable = LikesPluginRegisteredLikesMessagesTable(database)
     @Transient
-    val likesPluginMessagesTable = LikesPluginMessagesTable(likesPluginRegisteredLikesMessagesTable)
+    val likesPluginLikesTable = LikesPluginLikesTable(likesPluginRegisteredLikesMessagesTable, database)
+    @Transient
+    val likesPluginMessagesTable = LikesPluginMessagesTable(database, likesPluginRegisteredLikesMessagesTable)
 
     override suspend fun onInit(executor: RequestsExecutor, baseConfig: FinalConfig, pluginManager: PluginManager) {
         super.onInit(executor, baseConfig, pluginManager)
@@ -80,7 +85,8 @@ class LikesPlugin(
             botWR,
             baseConfig.targetChatId,
             debounceDelay,
-            adaptedGroups
+            adaptedGroups,
+            scope
         )
 
         adaptedGroups.map { group ->
