@@ -22,10 +22,11 @@ class LikesPlugin(
     private val groups: List<GroupConfig> = emptyList(),
     val separateAlways: Boolean = false,
     val separatedText: String = "Like? :)",
-    val debounceDelay: Long = 500
+    val debounceDelay: Long = 500,
+    private val marksListenersCount: Int = 32
 ) : Plugin {
     @Transient
-    private val scope = CoroutineScope(Executors.newCachedThreadPool().asCoroutineDispatcher())
+    private val scope = CoroutineScope(Dispatchers.Default)
 
     private val realGroups: List<GroupConfig> by lazy {
         if (groups.isEmpty()) {
@@ -86,7 +87,7 @@ class LikesPlugin(
             scope
         )
 
-        scope.enableMarksListener(
+        enableMarksListener(
             baseConfig.targetChatId,
             likesPluginLikesTable,
             adaptedGroups.flatMap { it.items },
@@ -97,7 +98,8 @@ class LikesPlugin(
                     null
                 }
             }.flatten().toMap(),
-            botWR
+            executor,
+            marksListenersCount
         )
 
         val adminsHolder = AdminsHolder(

@@ -9,9 +9,12 @@ import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.between
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 
@@ -24,8 +27,8 @@ class LikesPluginLikesTable(
     val messageButtonsUpdatedChannel = BroadcastChannel<MessageIdentifier>(Channel.CONFLATED)
 
     private val idColumn = integer("id").primaryKey().autoIncrement()
-    private val userIdColumn = long("userId")
-    private val messageIdColumn = long("messageId")
+    private val userIdColumn = long("userId").index()
+    private val messageIdColumn = long("messageId").index()
     private val buttonIdColumn = text("buttonId")
     private val dateTimeColumn = datetime("markDateTime").default(DateTime.now())
     private val cancelDateTimeColumn = datetime("cancelDateTime").nullable()
@@ -39,6 +42,13 @@ class LikesPluginLikesTable(
     private val ResultRow.userId: Long
         get() = get(userIdColumn)
 
+    private val ResultRow.asMark: Mark
+        get() = Mark(
+            userId,
+            messageId,
+            buttonId
+        )
+
     init {
         transaction(database) {
             SchemaUtils.createMissingTablesAndColumns(this@LikesPluginLikesTable)
@@ -49,10 +59,9 @@ class LikesPluginLikesTable(
     }
 
     operator fun contains(mark: Mark): Boolean {
+        val selectStatement = makeSelectStatementExceptCancelled(mark)
         return transaction(database) {
-            select {
-                makeSelectStatementExceptCancelled(mark)
-            }.count() > 0
+            select(selectStatement).limit(1).count() > 0
         }
     }
 
@@ -190,12 +199,8 @@ class LikesPluginLikesTable(
             )
         )
         return transaction(database) {
-            select { selectStatement }.map {
-                Mark(
-                    it.userId,
-                    it.messageId,
-                    it.buttonId
-                )
+            select(selectStatement).map {
+                it.asMark
             }
         }
     }
@@ -211,12 +216,8 @@ class LikesPluginLikesTable(
             cancelDateTimeColumn.isNull()
         )
         return transaction(database) {
-            select { selectStatement }.map {
-                Mark(
-                    it.userId,
-                    it.messageId,
-                    it.buttonId
-                )
+            select(selectStatement).map {
+                it.asMark
             }
         }
     }
@@ -226,12 +227,8 @@ class LikesPluginLikesTable(
             messageId
         )
         return transaction(database) {
-            select { selectStatement }.map {
-                Mark(
-                    it.userId,
-                    it.messageId,
-                    it.buttonId
-                )
+            select(selectStatement).map {
+                it.asMark
             }
         }
     }
@@ -243,12 +240,8 @@ class LikesPluginLikesTable(
             cancelDateTimeColumn.isNull()
         )
         return transaction(database) {
-            select { selectStatement }.map {
-                Mark(
-                    it.userId,
-                    it.messageId,
-                    it.buttonId
-                )
+            select(selectStatement).map {
+                it.asMark
             }
         }
     }
@@ -264,7 +257,7 @@ class LikesPluginLikesTable(
         return ButtonMark(
             messageId,
             buttonId,
-            transaction(database) { select { selectStatement }.count() }
+            transaction(database) { select (selectStatement).count() }
         )
     }
 
@@ -277,7 +270,7 @@ class LikesPluginLikesTable(
         )
 
         transaction(database) {
-            select { selectStatement }.map { it.buttonId }
+            select(selectStatement).map { it.buttonId }
         }.forEach { buttonId ->
             mapOfButtonsCount[buttonId] = (mapOfButtonsCount[buttonId] ?: 0) + 1
         }
@@ -288,6 +281,21 @@ class LikesPluginLikesTable(
                 buttonId,
                 count
             )
+        }
+    }
+
+    fun getMarksInDateTimeRange(from: DateTime? = null, to: DateTime? = null): List<Mark> {
+        val selectStatement = from ?.let { _ ->
+            to ?.let { _ ->
+                dateTimeColumn.between(from, to)
+            } ?: dateTimeColumn.greaterEq(from)
+        } ?: to ?.let { _ ->
+            dateTimeColumn.lessEq(to)
+        } ?.and(
+            cancelDateTimeColumn.isNull()
+        ) ?: cancelDateTimeColumn.isNull()
+        return transaction(database) {
+            select(selectStatement).map { it.asMark }
         }
     }
 }
