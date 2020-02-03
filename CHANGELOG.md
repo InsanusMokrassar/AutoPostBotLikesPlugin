@@ -7,6 +7,8 @@
 ### 1.8.1
 
 * Refactor of columns variables names in databases classes
+* Added analogs of select functions inside of `LikesPluginLikesTable` with postfix `*IncludeCancelled` which contains
+results with cancelled marks
 
 ## 1.7.0
 
