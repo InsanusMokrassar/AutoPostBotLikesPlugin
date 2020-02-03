@@ -181,20 +181,16 @@ class LikesPluginLikesTable(
         }
     }
 
-    fun userMarksOnMessage(messageId: MessageIdentifier, userId: Long, includeCancelled: Boolean = false): List<Mark> {
+    fun userMarksOnMessageIncludeCancelled(messageId: MessageIdentifier, userId: Long): List<Mark> {
         val selectStatement = messageIdColumn.eq(
             messageId
         ).and(
             userIdColumn.eq(
                 userId
             )
-        ).let {
-            if (!includeCancelled) {
-                it.and(cancelDateTimeColumn.isNull())
-            } else {
-                it
-            }
-        }
+        ).and(
+            cancelDateTimeColumn.isNull()
+        )
         return transaction(database) {
             select { selectStatement }.map {
                 Mark(
@@ -206,18 +202,14 @@ class LikesPluginLikesTable(
         }
     }
 
-    fun userMarksOnMessage(messageId: MessageIdentifier, userId: Long): List<Mark> = userMarksOnMessage(messageId, userId, false)
-
-    fun marksOfMessage(messageId: MessageIdentifier, includeCancelled: Boolean = false): List<Mark> {
+    fun userMarksOnMessage(messageId: MessageIdentifier, userId: Long): List<Mark> {
         val selectStatement = messageIdColumn.eq(
             messageId
-        ).let {
-            if (!includeCancelled) {
-                it.and(cancelDateTimeColumn.isNull())
-            } else {
-                it
-            }
-        }
+        ).and(
+            userIdColumn.eq(
+                userId
+            )
+        )
         return transaction(database) {
             select { selectStatement }.map {
                 Mark(
@@ -229,7 +221,37 @@ class LikesPluginLikesTable(
         }
     }
 
-    fun marksOfMessage(messageId: MessageIdentifier) = marksOfMessage(messageId, false)
+    fun marksOfMessageIncludeCancelled(messageId: MessageIdentifier): List<Mark> {
+        val selectStatement = messageIdColumn.eq(
+            messageId
+        )
+        return transaction(database) {
+            select { selectStatement }.map {
+                Mark(
+                    it.userId,
+                    it.messageId,
+                    it.buttonId
+                )
+            }
+        }
+    }
+
+    fun marksOfMessage(messageId: MessageIdentifier): List<Mark> {
+        val selectStatement = messageIdColumn.eq(
+            messageId
+        ).and(
+            cancelDateTimeColumn.isNull()
+        )
+        return transaction(database) {
+            select { selectStatement }.map {
+                Mark(
+                    it.userId,
+                    it.messageId,
+                    it.buttonId
+                )
+            }
+        }
+    }
 
     fun getMessageButtonMark(messageId: MessageIdentifier, buttonId: String): ButtonMark {
         val selectStatement = messageIdColumn.eq(
