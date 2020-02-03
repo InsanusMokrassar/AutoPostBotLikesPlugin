@@ -12,6 +12,7 @@ import com.github.insanusmokrassar.TelegramBotAPI.types.CallbackQuery.MessageDat
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
 import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardButtons.CallbackDataInlineKeyboardButton
 import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardButtons.InlineKeyboardButton
+import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeUnsafe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.lang.ref.WeakReference
@@ -53,15 +54,17 @@ fun CoroutineScope.enableMarksListener(
                         )
                     } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
 
-                    bot.execute(
-                        query.createAnswer(
-                            if (marked) {
-                                button.positiveAnswer ?.text ?: ""
-                            } else {
-                                button.negativeAnswer ?.text ?: ""
-                            }
+                    launch {
+                        bot.executeUnsafe(
+                            query.createAnswer(
+                                if (marked) {
+                                    button.positiveAnswer ?.text ?: ""
+                                } else {
+                                    button.negativeAnswer ?.text ?: ""
+                                }
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
