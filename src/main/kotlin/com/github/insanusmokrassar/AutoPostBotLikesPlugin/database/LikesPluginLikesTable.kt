@@ -229,6 +229,8 @@ class LikesPluginLikesTable(
         }
     }
 
+    fun marksOfMessage(messageId: MessageIdentifier) = marksOfMessage(messageId, false)
+
     fun getMessageButtonMark(messageId: MessageIdentifier, buttonId: String): ButtonMark {
         return transaction(database) {
             select {
