@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 
@@ -27,6 +28,7 @@ class LikesPluginLikesTable(
     private val messageIdColumn = long("messageId")
     private val buttonIdColumn = text("buttonId")
     private val dateTimeColumn = datetime("markDateTime").default(DateTime.now())
+    private val cancelDateTimeColumn = datetime("cancelDateTime").nullable()
 
     private val ResultRow.buttonId: String
         get() = get(buttonIdColumn)
@@ -53,12 +55,12 @@ class LikesPluginLikesTable(
     operator fun contains(mark: Mark): Boolean {
         return transaction(database) {
             select {
-                makeSelectStatement(mark)
+                makeSelectStatementExceptCancelled(mark)
             }.count() > 0
         }
     }
 
-    private fun makeSelectStatement(mark: Mark): Op<Boolean> {
+    private fun makeSelectStatementExceptCancelled(mark: Mark): Op<Boolean> {
         return userIdColumn.eq(
             mark.userId
         ).and(
@@ -69,6 +71,8 @@ class LikesPluginLikesTable(
             buttonIdColumn.eq(
                 mark.buttonId
             )
+        ).and(
+            cancelDateTimeColumn.isNull()
         )
     }
 
@@ -93,12 +97,16 @@ class LikesPluginLikesTable(
         }
     }
 
+    private fun delete(selectStatement: Op<Boolean>): Int = transaction(database) {
+        update(
+            { selectStatement.and(cancelDateTimeColumn.isNull()) }
+        ) {
+            it[cancelDateTimeColumn] = DateTime.now()
+        }
+    }
+
     private fun deleteMark(mark: Mark): Boolean {
-        return transaction(database) {
-            deleteWhere {
-                makeSelectStatement(mark)
-            } > 0
-        }.also {
+        return (delete(makeSelectStatementExceptCancelled(mark)) > 0).also {
             if (it) {
                 LikesPluginLikesTableScope.launch {
                     messageButtonsUpdatedChannel.send(mark.messageId)
@@ -107,26 +115,37 @@ class LikesPluginLikesTable(
         }
     }
 
+    private fun deleteMarkByMessageId(messageId: MessageIdentifier): Boolean {
+        return (delete(messageIdColumn.eq(messageId)) > 0).also {
+            if (it) {
+                LikesPluginLikesTableScope.launch {
+                    messageButtonsUpdatedChannel.send(messageId)
+                }
+            }
+        }
+    }
+
     private fun deleteUserMarksOnMessage(messageId: MessageIdentifier, userId: Long, buttonIds: List<String>?): Int {
-        return transaction(database) {
-            userIdColumn.eq(
-                userId
-            ).and(
-                messageIdColumn.eq(
-                    messageId
-                )
-            ).let {
-                buttonIds ?.let {
+        val select = userIdColumn.eq(
+            userId
+        ).and(
+            messageIdColumn.eq(
+                messageId
+            )
+        ).let {
+            buttonIds ?.let {
                     buttonIds ->
-                    it.and(
-                        buttonIdColumn.inList(buttonIds)
-                    )
+                it.and(
+                    buttonIdColumn.inList(buttonIds)
+                )
+            }
+        } ?: return 0
+        return delete(select).also {
+            if (it > 0) {
+                LikesPluginLikesTableScope.launch {
+                    messageButtonsUpdatedChannel.send(messageId)
                 }
-            } ?.let {
-                deleteWhere {
-                    it
-                }
-            } ?: 0
+            }
         }
     }
 
@@ -141,11 +160,10 @@ class LikesPluginLikesTable(
     }
 
     fun insertMarkDeleteOther(mark: Mark, otherIds: List<String>): Boolean {
-        var haveDeleted: Boolean = false
         return transaction(database) {
             val insertAfterClean = mark !in this@LikesPluginLikesTable
 
-            haveDeleted = deleteUserMarksOnMessage(
+            deleteUserMarksOnMessage(
                 mark.messageId,
                 mark.userId,
                 otherIds
@@ -159,7 +177,7 @@ class LikesPluginLikesTable(
                 false
             }
         }.also {
-            if (it || haveDeleted) {
+            if (it) {
                 LikesPluginLikesTableScope.launch {
                     messageButtonsUpdatedChannel.send(mark.messageId)
                 }
@@ -167,17 +185,22 @@ class LikesPluginLikesTable(
         }
     }
 
-    fun userMarksOnMessage(messageId: MessageIdentifier, userId: Long): List<Mark> {
+    fun userMarksOnMessage(messageId: MessageIdentifier, userId: Long, includeCancelled: Boolean = false): List<Mark> {
+        val selectStatement = messageIdColumn.eq(
+            messageId
+        ).and(
+            userIdColumn.eq(
+                userId
+            )
+        ).let {
+            if (!includeCancelled) {
+                it.and(cancelDateTimeColumn.isNull())
+            } else {
+                it
+            }
+        }
         return transaction(database) {
-            select {
-                messageIdColumn.eq(
-                    messageId
-                ).and(
-                    userIdColumn.eq(
-                        userId
-                    )
-                )
-            }.map {
+            select { selectStatement }.map {
                 Mark(
                     it.userId,
                     it.messageId,
@@ -187,11 +210,20 @@ class LikesPluginLikesTable(
         }
     }
 
-    fun marksOfMessage(messageId: MessageIdentifier): List<Mark> {
+    fun userMarksOnMessage(messageId: MessageIdentifier, userId: Long): List<Mark> = userMarksOnMessage(messageId, userId, false)
+
+    fun marksOfMessage(messageId: MessageIdentifier, includeCancelled: Boolean = false): List<Mark> {
+        val selectStatement = messageIdColumn.eq(
+            messageId
+        ).let {
+            if (!includeCancelled) {
+                it.and(cancelDateTimeColumn.isNull())
+            } else {
+                it
+            }
+        }
         return transaction(database) {
-            select {
-                messageIdColumn.eq(messageId)
-            }.map {
+            select { selectStatement }.map {
                 Mark(
                     it.userId,
                     it.messageId,
@@ -208,9 +240,10 @@ class LikesPluginLikesTable(
                     messageId
                 ).and(
                     buttonIdColumn.eq(buttonId)
+                ).and(
+                    cancelDateTimeColumn.isNull()
                 )
-            }.count().let {
-                count ->
+            }.count().let { count ->
                 ButtonMark(
                     messageId,
                     buttonId,
@@ -227,6 +260,8 @@ class LikesPluginLikesTable(
             select {
                 messageIdColumn.eq(
                     messageId
+                ).and(
+                    cancelDateTimeColumn.isNull()
                 )
             }.forEach {
                 mapOfButtonsCount[it.buttonId] = (mapOfButtonsCount[it.buttonId] ?: 0) + 1
