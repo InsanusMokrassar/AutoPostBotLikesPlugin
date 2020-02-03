@@ -232,38 +232,32 @@ class LikesPluginLikesTable(
     fun marksOfMessage(messageId: MessageIdentifier) = marksOfMessage(messageId, false)
 
     fun getMessageButtonMark(messageId: MessageIdentifier, buttonId: String): ButtonMark {
-        return transaction(database) {
-            select {
-                messageIdColumn.eq(
-                    messageId
-                ).and(
-                    buttonIdColumn.eq(buttonId)
-                ).and(
-                    cancelDateTimeColumn.isNull()
-                )
-            }.count().let { count ->
-                ButtonMark(
-                    messageId,
-                    buttonId,
-                    count
-                )
-            }
-        }
+        val selectStatement = messageIdColumn.eq(
+            messageId
+        ).and(
+            buttonIdColumn.eq(buttonId)
+        ).and(
+            cancelDateTimeColumn.isNull()
+        )
+        return ButtonMark(
+            messageId,
+            buttonId,
+            transaction(database) { select { selectStatement }.count() }
+        )
     }
 
     fun getMessageButtonMarks(messageId: MessageIdentifier): List<ButtonMark> {
         val mapOfButtonsCount = HashMap<String, Int>()
+        val selectStatement = messageIdColumn.eq(
+            messageId
+        ).and(
+            cancelDateTimeColumn.isNull()
+        )
 
         transaction(database) {
-            select {
-                messageIdColumn.eq(
-                    messageId
-                ).and(
-                    cancelDateTimeColumn.isNull()
-                )
-            }.forEach {
-                mapOfButtonsCount[it.buttonId] = (mapOfButtonsCount[it.buttonId] ?: 0) + 1
-            }
+            select { selectStatement }.map { it.buttonId }
+        }.forEach { buttonId ->
+            mapOfButtonsCount[buttonId] = (mapOfButtonsCount[buttonId] ?: 0) + 1
         }
 
         return mapOfButtonsCount.map { (buttonId, count) ->
