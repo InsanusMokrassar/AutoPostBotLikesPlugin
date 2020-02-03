@@ -188,8 +188,6 @@ class LikesPluginLikesTable(
             userIdColumn.eq(
                 userId
             )
-        ).and(
-            cancelDateTimeColumn.isNull()
         )
         return transaction(database) {
             select { selectStatement }.map {
@@ -209,6 +207,8 @@ class LikesPluginLikesTable(
             userIdColumn.eq(
                 userId
             )
+        ).and(
+            cancelDateTimeColumn.isNull()
         )
         return transaction(database) {
             select { selectStatement }.map {
