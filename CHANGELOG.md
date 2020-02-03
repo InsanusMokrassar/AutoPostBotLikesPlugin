@@ -6,6 +6,8 @@
 
 ### 1.8.1
 
+* Refactor of columns variables names in databases classes
+
 ## 1.7.0
 
 * `AutoPostTelegramBot` version `1.6.1` -> `1.7.0`

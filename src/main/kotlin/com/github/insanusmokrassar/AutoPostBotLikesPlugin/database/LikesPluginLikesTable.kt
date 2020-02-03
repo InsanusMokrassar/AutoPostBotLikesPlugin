@@ -22,20 +22,20 @@ class LikesPluginLikesTable(
 ) : Table() {
     val messageButtonsUpdatedChannel = BroadcastChannel<MessageIdentifier>(Channel.CONFLATED)
 
-    private val id = integer("id").primaryKey().autoIncrement()
-    private val userId = long("userId")
-    private val messageId = long("messageId")
-    private val buttonId = text("buttonId")
-    private val dateTime = datetime("markDateTime").default(DateTime.now())
+    private val idColumn = integer("id").primaryKey().autoIncrement()
+    private val userIdColumn = long("userId")
+    private val messageIdColumn = long("messageId")
+    private val buttonIdColumn = text("buttonId")
+    private val dateTimeColumn = datetime("markDateTime").default(DateTime.now())
 
     private val ResultRow.buttonId: String
-        get() = get(this@LikesPluginLikesTable.buttonId)
+        get() = get(buttonIdColumn)
 
     private val ResultRow.messageId: MessageIdentifier
-        get() = get(this@LikesPluginLikesTable.messageId)
+        get() = get(messageIdColumn)
 
     private val ResultRow.userId: Long
-        get() = get(this@LikesPluginLikesTable.userId)
+        get() = get(userIdColumn)
 
     init {
         transaction(database) {
@@ -44,7 +44,7 @@ class LikesPluginLikesTable(
         likesPluginRegisteredLikesMessagesTable.messageIdRemovedChannel.subscribe {
             transaction(database) {
                 deleteWhere {
-                    messageId.eq(it)
+                    messageIdColumn.eq(it)
                 }
             }
         }
@@ -59,14 +59,14 @@ class LikesPluginLikesTable(
     }
 
     private fun makeSelectStatement(mark: Mark): Op<Boolean> {
-        return userId.eq(
+        return userIdColumn.eq(
             mark.userId
         ).and(
-            messageId.eq(
+            messageIdColumn.eq(
                 mark.messageId
             )
         ).and(
-            buttonId.eq(
+            buttonIdColumn.eq(
                 mark.buttonId
             )
         )
@@ -78,11 +78,11 @@ class LikesPluginLikesTable(
                 false
             } else {
                 insert {
-                    it[userId] = mark.userId
-                    it[messageId] = mark.messageId
-                    it[buttonId] = mark.buttonId
-                    it[dateTime] = DateTime.now()
-                }[id] != null
+                    it[userIdColumn] = mark.userId
+                    it[messageIdColumn] = mark.messageId
+                    it[buttonIdColumn] = mark.buttonId
+                    it[dateTimeColumn] = DateTime.now()
+                }[idColumn] != null
             }
         }.also {
             if (it) {
@@ -109,17 +109,17 @@ class LikesPluginLikesTable(
 
     private fun deleteUserMarksOnMessage(messageId: MessageIdentifier, userId: Long, buttonIds: List<String>?): Int {
         return transaction(database) {
-            this@LikesPluginLikesTable.userId.eq(
+            userIdColumn.eq(
                 userId
             ).and(
-                this@LikesPluginLikesTable.messageId.eq(
+                messageIdColumn.eq(
                     messageId
                 )
             ).let {
                 buttonIds ?.let {
                     buttonIds ->
                     it.and(
-                        buttonId.inList(buttonIds)
+                        buttonIdColumn.inList(buttonIds)
                     )
                 }
             } ?.let {
@@ -170,10 +170,10 @@ class LikesPluginLikesTable(
     fun userMarksOnMessage(messageId: MessageIdentifier, userId: Long): List<Mark> {
         return transaction(database) {
             select {
-                this@LikesPluginLikesTable.messageId.eq(
+                messageIdColumn.eq(
                     messageId
                 ).and(
-                    this@LikesPluginLikesTable.userId.eq(
+                    userIdColumn.eq(
                         userId
                     )
                 )
@@ -190,7 +190,7 @@ class LikesPluginLikesTable(
     fun marksOfMessage(messageId: MessageIdentifier): List<Mark> {
         return transaction(database) {
             select {
-                this@LikesPluginLikesTable.messageId.eq(messageId)
+                messageIdColumn.eq(messageId)
             }.map {
                 Mark(
                     it.userId,
@@ -204,10 +204,10 @@ class LikesPluginLikesTable(
     fun getMessageButtonMark(messageId: MessageIdentifier, buttonId: String): ButtonMark {
         return transaction(database) {
             select {
-                this@LikesPluginLikesTable.messageId.eq(
+                messageIdColumn.eq(
                     messageId
                 ).and(
-                    this@LikesPluginLikesTable.buttonId.eq(buttonId)
+                    buttonIdColumn.eq(buttonId)
                 )
             }.count().let {
                 count ->
@@ -225,7 +225,7 @@ class LikesPluginLikesTable(
 
         transaction(database) {
             select {
-                this@LikesPluginLikesTable.messageId.eq(
+                messageIdColumn.eq(
                     messageId
                 )
             }.forEach {
