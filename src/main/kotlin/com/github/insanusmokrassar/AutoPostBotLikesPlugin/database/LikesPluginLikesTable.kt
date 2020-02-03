@@ -44,11 +44,7 @@ class LikesPluginLikesTable(
             SchemaUtils.createMissingTablesAndColumns(this@LikesPluginLikesTable)
         }
         likesPluginRegisteredLikesMessagesTable.messageIdRemovedChannel.subscribe {
-            transaction(database) {
-                deleteWhere {
-                    messageIdColumn.eq(it)
-                }
-            }
+            deleteMarkByMessageId(it)
         }
     }
 
