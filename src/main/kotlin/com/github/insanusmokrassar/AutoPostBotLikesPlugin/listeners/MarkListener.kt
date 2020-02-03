@@ -27,40 +27,42 @@ fun createMarkButton(buttonConfig: ButtonConfig, buttonMark: ButtonMark): Inline
 fun CoroutineScope.enableMarksListener(
     targetChatId: ChatId,
     likesPluginLikesTable: LikesPluginLikesTable,
-    button: ButtonConfig,
-    botWR: WeakReference<RequestsExecutor>,
-    radioGroupIds: List<String>? = null
+    buttons: List<ButtonConfig>,
+    radioGroupsByOneOfButtons: Map<ButtonConfig, List<String>>,
+    botWR: WeakReference<RequestsExecutor>
 ) {
-    val buttonId: String = button.id
-
+    val associatedButtons = buttons.associateBy { it.id }
     launch {
         flowFilter.callbackQueryFlow.collectWithErrors {
             val query = it.data as? MessageDataCallbackQuery ?: return@collectWithErrors
             val bot = botWR.get() ?: return@collectWithErrors
             val chatId = query.message.chat.id
             val data = query.data
-            if (chatId == targetChatId && data.startsWith(like_plugin_data) && data.split(" ")[1] == buttonId) {
-                val messageId = query.message.messageId
-                val userId = query.user.id
+            if (chatId == targetChatId && data.startsWith(like_plugin_data)) {
+                val buttonId = data.split(" ")[1]
+                associatedButtons[buttonId] ?.let { button ->
+                    val messageId = query.message.messageId
+                    val userId = query.user.id
 
-                val mark = Mark(userId.chatId, messageId, buttonId)
+                    val mark = Mark(userId.chatId, messageId, buttonId)
 
-                val marked = radioGroupIds ?.let { radioButtonsIds ->
-                    likesPluginLikesTable.insertMarkDeleteOther(
-                        mark,
-                        radioButtonsIds
+                    val marked = radioGroupsByOneOfButtons[button] ?.let { radioButtonsIds ->
+                        likesPluginLikesTable.insertMarkDeleteOther(
+                            mark,
+                            radioButtonsIds
+                        )
+                    } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
+
+                    bot.execute(
+                        query.createAnswer(
+                            if (marked) {
+                                button.positiveAnswer ?.text ?: ""
+                            } else {
+                                button.negativeAnswer ?.text ?: ""
+                            }
+                        )
                     )
-                } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
-
-                bot.execute(
-                    query.createAnswer(
-                        if (marked) {
-                            button.positiveAnswer ?.text ?: ""
-                        } else {
-                            button.negativeAnswer ?.text ?: ""
-                        }
-                    )
-                )
+                }
             }
         }
     }

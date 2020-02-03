@@ -27,7 +27,6 @@ class LikesPlugin(
     @Transient
     private val scope = CoroutineScope(Executors.newCachedThreadPool().asCoroutineDispatcher())
 
-    @Transient
     private val realGroups: List<GroupConfig> by lazy {
         if (groups.isEmpty()) {
             listOf(
@@ -40,10 +39,8 @@ class LikesPlugin(
         }
     }
 
-    @Transient
     private val adaptedGroups: List<Group> by lazy {
-        realGroups.map {
-                group ->
+        realGroups.map { group ->
             Group(
                 group.radio,
                 buttons.filter {
@@ -89,17 +86,19 @@ class LikesPlugin(
             scope
         )
 
-        adaptedGroups.map { group ->
-            group.items.map { button ->
-                scope.enableMarksListener(
-                    baseConfig.targetChatId,
-                    likesPluginLikesTable,
-                    button,
-                    botWR,
-                    group.other(button).map { it.id }
-                )
-            }
-        }
+        scope.enableMarksListener(
+            baseConfig.targetChatId,
+            likesPluginLikesTable,
+            adaptedGroups.flatMap { it.items },
+            adaptedGroups.mapNotNull { group ->
+                if (group.isRadio) {
+                    group.items.map { groupItem -> groupItem to group.items.map { it.id } }
+                } else {
+                    null
+                }
+            }.flatten().toMap(),
+            botWR
+        )
 
         val adminsHolder = AdminsHolder(
             botWR,
