@@ -4,6 +4,7 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginMe
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostIdListPostMessagesTelegramMessages
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
+import com.github.insanusmokrassar.AutoPostTelegramBot.utils.flow.collectWithErrors
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
@@ -27,13 +28,7 @@ class LikesGroupsRegistrator(
 ) {
     init {
         scope.launch {
-            channel.asFlow().catch { e ->
-                commonLogger.throwing(
-                    "LikesGroupsRegistrator",
-                    "Registering of published post",
-                    e
-                )
-            }.collect { (_, messagesPairs) ->
+            channel.asFlow().collectWithErrors { (_, messagesPairs) ->
                 registerNewLikesGroup(messagesPairs)
             }
         }
