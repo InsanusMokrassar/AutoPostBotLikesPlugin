@@ -126,7 +126,7 @@ fun CoroutineScope.enableMarksListener(
 
     launch {
         asFlow.collectWithErrors { query ->
-            launch {
+            async {
                 val chatId = query.message.chat.id
                 val data = query.data
                 if (chatId == targetChatId && data.startsWith(like_plugin_data)) {
@@ -144,15 +144,14 @@ fun CoroutineScope.enableMarksListener(
                             )
                         } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
 
-                        bot.executeUnsafe(
+                        bot.execute(
                             query.createAnswer(
                                 if (marked) {
                                     button.positiveAnswer ?.text ?: ""
                                 } else {
                                     button.negativeAnswer ?.text ?: ""
                                 }
-                            ),
-                            retries = 0
+                            )
                         )
                     }
                 }

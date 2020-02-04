@@ -14,6 +14,7 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.*
 import java.lang.ref.WeakReference
 import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
 
 @Serializable
 class LikesPlugin(
@@ -25,7 +26,18 @@ class LikesPlugin(
     val debounceDelay: Long = 500
 ) : Plugin {
     @Transient
-    private val scope = CoroutineScope(Executors.newCachedThreadPool().asCoroutineDispatcher())
+    private val scope = CoroutineScope(
+        Executors.newCachedThreadPool(
+            let {
+                val defaultThreadFactory = Executors.defaultThreadFactory()
+                ThreadFactory {
+                    defaultThreadFactory.newThread(it).also { thread ->
+                        thread.name = "LikesPluginThreadPool - thread ${thread.threadGroup.activeCount()}"
+                    }
+                }
+            }
+        ).asCoroutineDispatcher()
+    )
 
     private val realGroups: List<GroupConfig> by lazy {
         if (groups.isEmpty()) {
