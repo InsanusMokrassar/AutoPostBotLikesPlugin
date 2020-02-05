@@ -37,6 +37,9 @@ class LikesGroupsUpdater(
     scope: CoroutineScope
 ) {
     private val pendingUpdatesQueue: Channel<MessageIdentifier> = Channel()
+    private val callUpdateExceptionsHandler = CoroutineExceptionHandler { _, throwable ->
+        commonLogger.throwing(this@LikesGroupsUpdater::class.simpleName, "call update", throwable)
+    }
     private val updateCaller = scope.launch {
         val updateCalls = mutableMapOf<MessageIdentifier, Job>()
         val times = mutableMapOf<MessageIdentifier, Long>()
@@ -44,21 +47,24 @@ class LikesGroupsUpdater(
             times[messageIdentifier] = System.currentTimeMillis() + debounceDelay
             updateCalls.getOrPut(messageIdentifier) {
                 launch {
-                    try {
-                        var timeToSleep = times[messageIdentifier] ?.minus(System.currentTimeMillis()) ?: 0
-                        while (timeToSleep > 0) {
-                            delay(timeToSleep)
-                            timeToSleep = times[messageIdentifier] ?.minus(System.currentTimeMillis()) ?: 0
-                        }
-                        updateCalls[messageIdentifier] = launch {
-                            updateMessage(messageIdentifier)
-                            updateCalls.remove(messageIdentifier)
-                        }
-                        times.remove(messageIdentifier)
-                    } catch (e: Exception) {
-                        commonLogger.throwing(this@LikesGroupsUpdater::class.simpleName, "call update", e)
+                    supervisorScope {
+                        launch(callUpdateExceptionsHandler) {
+                            try {
+                                var timeToSleep = times[messageIdentifier] ?.minus(System.currentTimeMillis()) ?: 0
+                                while (timeToSleep > 0) {
+                                    delay(timeToSleep)
+                                    timeToSleep = times[messageIdentifier] ?.minus(System.currentTimeMillis()) ?: 0
+                                }
+                                times.remove(messageIdentifier)
+                                updateMessage(messageIdentifier)
+                            } catch (e: Exception) {
+                                commonLogger.throwing(this@LikesGroupsUpdater::class.simpleName, "call update", e)
+                            }
+                        }.join()
                     }
+                    updateCalls.remove(messageIdentifier)
                 }
+
             }
         }
     }
@@ -83,7 +89,7 @@ class LikesGroupsUpdater(
     }
 
     private suspend fun updateMessage(messageId: MessageIdentifier) {
-        botWR.get() ?.executeUnsafe(
+        botWR.get() ?.execute(
             EditChatMessageReplyMarkup(
                 chatId,
                 messageId,

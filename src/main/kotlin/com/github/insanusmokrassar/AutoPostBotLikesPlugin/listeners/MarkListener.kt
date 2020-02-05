@@ -35,6 +35,9 @@ private fun CoroutineScope.createActor(
     button: ButtonConfig
 ) {
     val buttonId = button.id
+    val answeringExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        commonLogger.throwing("Mark ${button.text}", "sending answer", throwable)
+    }
     launch {
         updateFlow.collectWithErrors { query ->
             val chatId = query.message.chat.id
@@ -50,15 +53,19 @@ private fun CoroutineScope.createActor(
                     radioButtonsIds
                 )
 
-                bot.executeUnsafe(
-                    query.createAnswer(
-                        if (marked) {
-                            button.positiveAnswer ?.text ?: ""
-                        } else {
-                            button.negativeAnswer ?.text ?: ""
-                        }
-                    )
-                )
+                supervisorScope {
+                    launch(answeringExceptionHandler) {
+                        bot.execute(
+                            query.createAnswer(
+                                if (marked) {
+                                    button.positiveAnswer ?.text ?: ""
+                                } else {
+                                    button.negativeAnswer ?.text ?: ""
+                                }
+                            )
+                        )
+                    }
+                }
             }
         }
     }

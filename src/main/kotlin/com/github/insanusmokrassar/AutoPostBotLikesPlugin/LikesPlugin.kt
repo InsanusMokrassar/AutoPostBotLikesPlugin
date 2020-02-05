@@ -6,13 +6,13 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.DatabaseConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.FinalConfig
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.Plugin
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.PluginManager
+import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.*
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostPublisher
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import kotlinx.coroutines.*
 import kotlinx.serialization.*
 import java.lang.ref.WeakReference
+import java.net.SocketTimeoutException
 import java.util.concurrent.Executors
 import java.util.concurrent.ThreadFactory
 
@@ -30,13 +30,22 @@ class LikesPlugin(
         Executors.newCachedThreadPool(
             let {
                 val defaultThreadFactory = Executors.defaultThreadFactory()
+//                val defaultUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
+//                val exceptionsHandler = Thread.UncaughtExceptionHandler { thread, throwable ->
+//                    if (throwable is SocketTimeoutException) {
+//                        commonLogger.throwing("LikesPlugin", "uncaught exceptions handling", throwable)
+//                    } else {
+//                        defaultUncaughtExceptionHandler.uncaughtException(thread, throwable)
+//                    }
+//                }
                 ThreadFactory {
                     defaultThreadFactory.newThread(it).also { thread ->
-                        thread.name = "LikesPluginThreadPool - thread ${thread.threadGroup.activeCount()}"
+                        thread.name = "LikesPluginThreadPool - ${thread.threadGroup.activeCount()}"
+//                        thread.uncaughtExceptionHandler = exceptionsHandler
                     }
                 }
             }
-        ).asCoroutineDispatcher()
+        ).asCoroutineDispatcher() + SupervisorJob()
     )
 
     private val realGroups: List<GroupConfig> by lazy {
