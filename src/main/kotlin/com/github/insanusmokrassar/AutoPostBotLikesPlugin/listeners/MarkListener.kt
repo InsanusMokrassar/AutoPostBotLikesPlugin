@@ -36,34 +36,36 @@ private fun CoroutineScope.createActor(
 ) {
     val buttonId = button.id
     val answeringExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        commonLogger.throwing("Mark ${button.text}", "sending answer", throwable)
+        commonLogger.throwing("Mark ${button.text}", "register mark", throwable)
     }
     launch {
-        updateFlow.collectWithErrors { query ->
-            val chatId = query.message.chat.id
-            val data = query.data
-            if (chatId == targetChatId && data.startsWith(like_plugin_data) && data.split(" ")[1] == buttonId) {
-                val messageId = query.message.messageId
-                val userId = query.user.id
+        updateFlow.collect { query ->
+            coroutineScope {
+                async(answeringExceptionHandler) {
+                    val chatId = query.message.chat.id
+                    val data = query.data
+                    if (chatId == targetChatId && data.startsWith(like_plugin_data) && data.split(" ")[1] == buttonId) {
+                        val messageId = query.message.messageId
+                        val userId = query.user.id
 
-                val mark = Mark(userId.chatId, messageId, buttonId)
+                        val mark = Mark(userId.chatId, messageId, buttonId)
 
-                val marked = likesPluginLikesTable.insertMarkDeleteOther(
-                    mark,
-                    radioButtonsIds
-                )
-
-                supervisorScope {
-                    launch(answeringExceptionHandler) {
-                        bot.execute(
-                            query.createAnswer(
-                                if (marked) {
-                                    button.positiveAnswer ?.text ?: ""
-                                } else {
-                                    button.negativeAnswer ?.text ?: ""
-                                }
-                            )
+                        val marked = likesPluginLikesTable.insertMarkDeleteOther(
+                            mark,
+                            radioButtonsIds
                         )
+
+                        supervisorScope {
+                            bot.execute(
+                                query.createAnswer(
+                                    if (marked) {
+                                        button.positiveAnswer ?.text ?: ""
+                                    } else {
+                                        button.negativeAnswer ?.text ?: ""
+                                    }
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -133,33 +135,35 @@ fun CoroutineScope.enableMarksListener(
 
     launch {
         asFlow.collectWithErrors { query ->
-            async {
-                val chatId = query.message.chat.id
-                val data = query.data
-                if (chatId == targetChatId && data.startsWith(like_plugin_data)) {
-                    val buttonId = data.split(" ")[1]
-                    associatedButtons[buttonId] ?.let { button ->
-                        val messageId = query.message.messageId
-                        val userId = query.user.id
+            coroutineScope {
+                async {
+                    val chatId = query.message.chat.id
+                    val data = query.data
+                    if (chatId == targetChatId && data.startsWith(like_plugin_data)) {
+                        val buttonId = data.split(" ")[1]
+                        associatedButtons[buttonId] ?.let { button ->
+                            val messageId = query.message.messageId
+                            val userId = query.user.id
 
-                        val mark = Mark(userId.chatId, messageId, buttonId)
+                            val mark = Mark(userId.chatId, messageId, buttonId)
 
-                        val marked = radioGroupsByOneOfButtons[button] ?.let { radioButtonsIds ->
-                            likesPluginLikesTable.insertMarkDeleteOther(
-                                mark,
-                                radioButtonsIds
+                            val marked = radioGroupsByOneOfButtons[button] ?.let { radioButtonsIds ->
+                                likesPluginLikesTable.insertMarkDeleteOther(
+                                    mark,
+                                    radioButtonsIds
+                                )
+                            } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
+
+                            bot.execute(
+                                query.createAnswer(
+                                    if (marked) {
+                                        button.positiveAnswer ?.text ?: ""
+                                    } else {
+                                        button.negativeAnswer ?.text ?: ""
+                                    }
+                                )
                             )
-                        } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
-
-                        bot.execute(
-                            query.createAnswer(
-                                if (marked) {
-                                    button.positiveAnswer ?.text ?: ""
-                                } else {
-                                    button.negativeAnswer ?.text ?: ""
-                                }
-                            )
-                        )
+                        }
                     }
                 }
             }.invokeOnCompletion {

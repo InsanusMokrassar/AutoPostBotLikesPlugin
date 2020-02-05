@@ -5,21 +5,18 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRe
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.Group
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.flow.collectWithErrors
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.edit.ReplyMarkup.EditChatMessageReplyMarkup
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardMarkup
-import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeUnsafe
 import com.github.insanusmokrassar.TelegramBotAPI.utils.matrix
 import com.github.insanusmokrassar.TelegramBotAPI.utils.row
-import com.soywiz.klock.DateTime
-import com.soywiz.klock.TimeSpan
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.consumeAsFlow
 import java.lang.ref.WeakReference
 
 private sealed class UpdateCommand()
@@ -37,34 +34,25 @@ class LikesGroupsUpdater(
     scope: CoroutineScope
 ) {
     private val pendingUpdatesQueue: Channel<MessageIdentifier> = Channel()
-    private val callUpdateExceptionsHandler = CoroutineExceptionHandler { _, throwable ->
-        commonLogger.throwing(this@LikesGroupsUpdater::class.simpleName, "call update", throwable)
-    }
     private val updateCaller = scope.launch {
         val updateCalls = mutableMapOf<MessageIdentifier, Job>()
         val times = mutableMapOf<MessageIdentifier, Long>()
-        for (messageIdentifier in pendingUpdatesQueue) {
-            times[messageIdentifier] = System.currentTimeMillis() + debounceDelay
-            updateCalls.getOrPut(messageIdentifier) {
-                launch {
-                    supervisorScope {
-                        launch(callUpdateExceptionsHandler) {
-                            try {
-                                var timeToSleep = times[messageIdentifier] ?.minus(System.currentTimeMillis()) ?: 0
-                                while (timeToSleep > 0) {
-                                    delay(timeToSleep)
-                                    timeToSleep = times[messageIdentifier] ?.minus(System.currentTimeMillis()) ?: 0
-                                }
-                                times.remove(messageIdentifier)
-                                updateMessage(messageIdentifier)
-                            } catch (e: Exception) {
-                                commonLogger.throwing(this@LikesGroupsUpdater::class.simpleName, "call update", e)
-                            }
-                        }.join()
+        val callUpdateExceptionsHandler = CoroutineExceptionHandler { _, throwable ->
+            commonLogger.throwing(this@LikesGroupsUpdater::class.simpleName, "call update", throwable)
+        }
+        pendingUpdatesQueue.consumeAsFlow().collectWithErrors { messageIdentifier ->
+            updateCalls.remove(messageIdentifier) ?.cancel()
+            val callTime = System.currentTimeMillis()
+            times[messageIdentifier] = callTime
+            updateCalls[messageIdentifier] = supervisorScope {
+                launch(callUpdateExceptionsHandler) {
+                    delay(debounceDelay)
+                    if (times[messageIdentifier] == callTime) {
+                        updateCalls.remove(messageIdentifier)
+                        times.remove(messageIdentifier)
+                        updateMessage(messageIdentifier)
                     }
-                    updateCalls.remove(messageIdentifier)
                 }
-
             }
         }
     }
