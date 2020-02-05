@@ -132,11 +132,14 @@ fun CoroutineScope.enableMarksListener(
     val associatedButtons = buttons.associateBy { it.id }
     val internalChannel = Channel<MessageDataCallbackQuery>(Channel.UNLIMITED)
     val asFlow = internalChannel.consumeAsFlow()
+    val marksListenerExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        commonLogger.throwing("MarksListener", "Mark update handling", throwable)
+    }
 
     launch {
         asFlow.collectWithErrors { query ->
-            coroutineScope {
-                async {
+            supervisorScope {
+                launch(marksListenerExceptionHandler) {
                     val chatId = query.message.chat.id
                     val data = query.data
                     if (chatId == targetChatId && data.startsWith(like_plugin_data)) {
@@ -165,14 +168,6 @@ fun CoroutineScope.enableMarksListener(
                             )
                         }
                     }
-                }
-            }.invokeOnCompletion {
-                it ?.let { e ->
-                    commonLogger.throwing(
-                        "MarksListener",
-                        "Mark update handling",
-                        e
-                    )
                 }
             }
         }

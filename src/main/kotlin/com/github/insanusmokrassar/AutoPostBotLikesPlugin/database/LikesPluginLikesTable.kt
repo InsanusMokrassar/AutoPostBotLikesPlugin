@@ -111,13 +111,7 @@ class LikesPluginLikesTable(
     }
 
     private fun deleteMark(mark: Mark): Boolean {
-        return (delete(makeSelectStatementExceptCancelled(mark)) > 0).also {
-            if (it) {
-                LikesPluginLikesTableScope.launch {
-                    messageButtonsUpdatedChannel.send(mark.messageId)
-                }
-            }
-        }
+        return delete(makeSelectStatementExceptCancelled(mark)) > 0
     }
 
     private fun deleteMarkByMessageId(messageId: MessageIdentifier): Boolean {
@@ -161,6 +155,10 @@ class LikesPluginLikesTable(
             } else {
                 true
             }
+        }.also {
+            LikesPluginLikesTableScope.launch {
+                messageButtonsUpdatedChannel.send(mark.messageId)
+            }
         }
     }
 
@@ -182,10 +180,8 @@ class LikesPluginLikesTable(
                 false
             }
         }.also {
-            if (it) {
-                LikesPluginLikesTableScope.launch {
-                    messageButtonsUpdatedChannel.send(mark.messageId)
-                }
+            LikesPluginLikesTableScope.launch {
+                messageButtonsUpdatedChannel.send(mark.messageId)
             }
         }
     }
@@ -262,13 +258,13 @@ class LikesPluginLikesTable(
     }
 
     fun getMessageButtonMarks(messageId: MessageIdentifier): List<ButtonMark> {
-        val mapOfButtonsCount = HashMap<String, Int>()
         val selectStatement = messageIdColumn.eq(
             messageId
         ).and(
             cancelDateTimeColumn.isNull()
         )
 
+        val mapOfButtonsCount = mutableMapOf<String, Int>()
         transaction(database) {
             select(selectStatement).map { it.buttonId }
         }.forEach { buttonId ->
