@@ -9,10 +9,10 @@ class LikesPluginMessagesTable(
     private val database: Database,
     private val likesPluginRegisteredLikesMessagesTable: LikesPluginRegisteredLikesMessagesTable = LikesPluginRegisteredLikesMessagesTable(database)
 ) : Table() {
-    private val id = long("id").primaryKey().autoIncrement()
-    private val likesId: Column<LikesGroupId> = long("likesId")
-    private val messageId: Column<MessageIdentifier> = long("messageId").uniqueIndex()
-    private val groupId: Column<MediaGroupIdentifier?> = text("groupId").nullable()
+    private val idColumn = long("id").primaryKey().autoIncrement()
+    private val likesIdColumn: Column<LikesGroupId> = long("likesId")
+    private val messageIdColumn: Column<MessageIdentifier> = long("messageId").uniqueIndex()
+    private val groupIdColumn: Column<MediaGroupIdentifier?> = text("groupId").nullable()
 
     init {
         transaction(database) {
@@ -22,9 +22,9 @@ class LikesPluginMessagesTable(
 
     operator fun get(likesGroupId: LikesGroupId): List<Pair<MessageIdentifier, MediaGroupIdentifier?>> = transaction(database) {
         select {
-            likesId.eq(likesGroupId)
+            likesIdColumn.eq(likesGroupId)
         }.asSequence().map {
-            it[messageId] to it[groupId]
+            it[messageIdColumn] to it[groupIdColumn]
         }.sortedBy {
             it.first
         }.toList()
@@ -32,13 +32,13 @@ class LikesPluginMessagesTable(
 
     operator fun contains(groupIdToMessageId: Pair<LikesGroupId, MessageIdentifier>): Boolean = transaction(database) {
         select {
-            likesId.eq(groupIdToMessageId.first).and(messageId.eq(groupIdToMessageId.second))
+            likesIdColumn.eq(groupIdToMessageId.first).and(messageIdColumn.eq(groupIdToMessageId.second))
         }.firstOrNull() != null
     }
 
     operator fun contains(messageId: MessageIdentifier): Boolean = transaction(database) {
         select {
-            this@LikesPluginMessagesTable.messageId.eq(messageId)
+            messageIdColumn.eq(messageId)
         }.firstOrNull() != null
     }
 
@@ -61,10 +61,10 @@ class LikesPluginMessagesTable(
             var atLeastOneRegistered = false
             filtered.forEach { messageIdentifier ->
                 atLeastOneRegistered = insert {
-                    it[likesId] = likesGroupId
-                    it[messageId] = messageIdentifier
-                    it[groupId] = mediaGroups[messageIdentifier]
-                }[id] != null || atLeastOneRegistered
+                    it[likesIdColumn] = likesGroupId
+                    it[messageIdColumn] = messageIdentifier
+                    it[groupIdColumn] = mediaGroups[messageIdentifier]
+                }[idColumn] != null || atLeastOneRegistered
             }
             return@transaction atLeastOneRegistered
         }
@@ -76,7 +76,7 @@ class LikesPluginMessagesTable(
 
     fun getLikesGroupId(messageId: MessageIdentifier): LikesGroupId? = transaction(database) {
         select {
-            this@LikesPluginMessagesTable.messageId.eq(messageId)
-        }.firstOrNull() ?.get(likesId)
+            messageIdColumn.eq(messageId)
+        }.firstOrNull() ?.get(likesIdColumn)
     }
 }

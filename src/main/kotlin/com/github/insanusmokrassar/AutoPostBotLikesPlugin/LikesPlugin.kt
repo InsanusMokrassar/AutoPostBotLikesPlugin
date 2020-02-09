@@ -6,14 +6,15 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.*
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.DatabaseConfig
 import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.FinalConfig
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.Plugin
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.PluginManager
+import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.*
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostPublisher
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import kotlinx.coroutines.*
 import kotlinx.serialization.*
 import java.lang.ref.WeakReference
+import java.net.SocketTimeoutException
 import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
 
 @Serializable
 class LikesPlugin(
@@ -27,7 +28,6 @@ class LikesPlugin(
     @Transient
     private val scope = CoroutineScope(Executors.newCachedThreadPool().asCoroutineDispatcher())
 
-    @Transient
     private val realGroups: List<GroupConfig> by lazy {
         if (groups.isEmpty()) {
             listOf(
@@ -40,10 +40,8 @@ class LikesPlugin(
         }
     }
 
-    @Transient
     private val adaptedGroups: List<Group> by lazy {
-        realGroups.map {
-                group ->
+        realGroups.map { group ->
             Group(
                 group.radio,
                 buttons.filter {
@@ -89,17 +87,19 @@ class LikesPlugin(
             scope
         )
 
-        adaptedGroups.map { group ->
-            group.items.map { button ->
-                scope.enableMarksListener(
-                    baseConfig.targetChatId,
-                    likesPluginLikesTable,
-                    button,
-                    botWR,
-                    group.other(button).map { it.id }
-                )
-            }
-        }
+        scope.enableMarksListener(
+            baseConfig.targetChatId,
+            likesPluginLikesTable,
+            adaptedGroups.flatMap { it.items },
+            adaptedGroups.mapNotNull { group ->
+                if (group.isRadio) {
+                    group.items.map { groupItem -> groupItem to group.items.map { it.id } }
+                } else {
+                    null
+                }
+            }.flatten().toMap(),
+            executor
+        )
 
         val adminsHolder = AdminsHolder(
             botWR,
