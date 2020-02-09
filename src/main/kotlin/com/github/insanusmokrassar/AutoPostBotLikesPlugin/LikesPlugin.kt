@@ -26,27 +26,7 @@ class LikesPlugin(
     val debounceDelay: Long = 500
 ) : Plugin {
     @Transient
-    private val scope = CoroutineScope(
-        Executors.newCachedThreadPool(
-            let {
-                val defaultThreadFactory = Executors.defaultThreadFactory()
-//                val defaultUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
-//                val exceptionsHandler = Thread.UncaughtExceptionHandler { thread, throwable ->
-//                    if (throwable is SocketTimeoutException) {
-//                        commonLogger.throwing("LikesPlugin", "uncaught exceptions handling", throwable)
-//                    } else {
-//                        defaultUncaughtExceptionHandler.uncaughtException(thread, throwable)
-//                    }
-//                }
-                ThreadFactory {
-                    defaultThreadFactory.newThread(it).also { thread ->
-                        thread.name = "LikesPluginThreadPool - ${thread.threadGroup.activeCount()}"
-//                        thread.uncaughtExceptionHandler = exceptionsHandler
-                    }
-                }
-            }
-        ).asCoroutineDispatcher() + SupervisorJob()
-    )
+    private val scope = CoroutineScope(Executors.newCachedThreadPool().asCoroutineDispatcher())
 
     private val realGroups: List<GroupConfig> by lazy {
         if (groups.isEmpty()) {
