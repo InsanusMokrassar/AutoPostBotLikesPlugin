@@ -38,6 +38,9 @@ class LikesGroupsUpdater(
         val updateCalls = mutableMapOf<MessageIdentifier, Job>()
         val times = mutableMapOf<MessageIdentifier, Long>()
         val callUpdateExceptionsHandler = CoroutineExceptionHandler { _, throwable ->
+            if (throwable is CancellationException) {
+                throw throwable
+            }
             commonLogger.throwing(this@LikesGroupsUpdater::class.simpleName, "call update", throwable)
         }
         pendingUpdatesQueue.consumeAsFlow().collectWithErrors { messageIdentifier ->
