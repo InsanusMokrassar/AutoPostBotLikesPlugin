@@ -53,8 +53,14 @@ class LikesPluginLikesTable(
         transaction(database) {
             SchemaUtils.createMissingTablesAndColumns(this@LikesPluginLikesTable)
         }
-        likesPluginRegisteredLikesMessagesTable.messageIdRemovedChannel.subscribe {
-            deleteMarkByMessageId(it)
+        likesPluginRegisteredLikesMessagesTable.messageIdRemovedChannel.subscribe { messageId ->
+            deleteMarkByMessageId(messageId).also {
+                if (it) {
+                    LikesPluginLikesTableScope.launch {
+                        messageButtonsUpdatedChannel.send(messageId)
+                    }
+                }
+            }
         }
     }
 
@@ -93,12 +99,6 @@ class LikesPluginLikesTable(
                     it[dateTimeColumn] = DateTime.now()
                 }[idColumn] != null
             }
-        }.also {
-            if (it) {
-                LikesPluginLikesTableScope.launch {
-                    messageButtonsUpdatedChannel.send(mark.messageId)
-                }
-            }
         }
     }
 
@@ -115,13 +115,7 @@ class LikesPluginLikesTable(
     }
 
     private fun deleteMarkByMessageId(messageId: MessageIdentifier): Boolean {
-        return (delete(messageIdColumn.eq(messageId)) > 0).also {
-            if (it) {
-                LikesPluginLikesTableScope.launch {
-                    messageButtonsUpdatedChannel.send(messageId)
-                }
-            }
-        }
+        return (delete(messageIdColumn.eq(messageId)) > 0)
     }
 
     private fun deleteUserMarksOnMessage(messageId: MessageIdentifier, userId: Long, buttonIds: List<String>?): Int {
@@ -139,13 +133,7 @@ class LikesPluginLikesTable(
                 )
             }
         } ?: return 0
-        return delete(select).also {
-            if (it > 0) {
-                LikesPluginLikesTableScope.launch {
-                    messageButtonsUpdatedChannel.send(messageId)
-                }
-            }
-        }
+        return delete(select)
     }
 
     fun insertOrDeleteMark(mark: Mark): Boolean {
