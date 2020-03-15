@@ -52,7 +52,7 @@ class LikesPlugin(
     }
 
     @Transient
-    private val database = databaseConfig.connect()
+    private val database = databaseConfig.database
 
     @Transient
     val likesPluginRegisteredLikesMessagesTable = LikesPluginRegisteredLikesMessagesTable(database)

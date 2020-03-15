@@ -10,6 +10,10 @@
 * Added analogs of select functions inside of `LikesPluginLikesTable` with postfix `*IncludeCancelled` which contains
 results with cancelled marks
 
+### 1.8.2
+
+* Updated version of `AutoPostTelegramBot`: `1.8.0` -> `1.8.2`
+
 ## 1.7.0
 
 * `AutoPostTelegramBot` version `1.6.1` -> `1.7.0`

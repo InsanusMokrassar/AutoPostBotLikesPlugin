@@ -4,13 +4,12 @@ import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLi
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
 import com.github.insanusmokrassar.AutoPostTelegramBot.*
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.flow.collectWithErrors
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
-import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendMessage
+import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendTextMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
 import com.github.insanusmokrassar.TelegramBotAPI.types.ParseMode.MarkdownParseMode
-import com.github.insanusmokrassar.TelegramBotAPI.types.message.ForwardedFromChannelMessage
+import com.github.insanusmokrassar.TelegramBotAPI.types.message.ForwardFromChannelInfo
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.CommonMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.FromUserMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.message.content.TextContent
@@ -35,11 +34,11 @@ internal fun CoroutineScope.enableDetectLikesRefreshMessages(
     val receiver: suspend (BaseMessageUpdate) -> Unit = {
         val message = it.data as? CommonMessage<*>
         (message as? FromUserMessage) ?.user ?.id ?.let { userId ->
-            (message.forwarded as? ForwardedFromChannelMessage) ?.let { forwarded ->
-                val originalMessageId = forwarded.messageId
-                if (forwarded.channelChat.id == targetChatId && adminsHolder.contains(userId) && likesPluginRegisteredLikesMessagesTable.contains(originalMessageId)) {
+            (message.forwardInfo as? ForwardFromChannelInfo) ?.let { forwardInfo ->
+                val originalMessageId = forwardInfo.messageId
+                if (forwardInfo.channelChat.id == targetChatId && adminsHolder.contains(userId) && likesPluginRegisteredLikesMessagesTable.contains(originalMessageId)) {
                     botWR.get() ?.executeUnsafe(
-                        SendMessage(
+                        SendTextMessage(
                             message.chat.id,
                             "Send me `${commandTemplate.format(originalMessageId)}` for force post likes update",
                             MarkdownParseMode
@@ -54,7 +53,7 @@ internal fun CoroutineScope.enableDetectLikesRefreshMessages(
                         updateChannel.send(messageId)
 
                         botWR.get() ?.executeUnsafe(
-                            SendMessage(
+                            SendTextMessage(
                                 message.chat.id,
                                 "Likes was updated (can be showed with delay)"
                             )

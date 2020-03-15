@@ -1,12 +1,10 @@
 package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginMessagesTable
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
 import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostIdListPostMessagesTelegramMessages
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.flow.collectWithErrors
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
-import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendMessage
+import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendTextMessage
 import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import com.github.insanusmokrassar.TelegramBotAPI.types.ParseMode.MarkdownParseMode
@@ -71,7 +69,7 @@ class LikesGroupsRegistrator(
         return likesMessagesTable.getLikesGroupId(messageId) ?: let {
             val bot = botWR.get() ?: throw IllegalStateException("Bot was collected by GC")
             val registeredMessage = bot.execute(
-                SendMessage(
+                SendTextMessage(
                     chatId,
                     separatedText,
                     MarkdownParseMode,
