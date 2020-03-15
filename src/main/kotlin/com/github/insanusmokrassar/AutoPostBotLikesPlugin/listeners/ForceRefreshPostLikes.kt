@@ -3,7 +3,7 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginRegisteredLikesMessagesTable
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
-import com.github.insanusmokrassar.AutoPostTelegramBot.*
+import com.github.insanusmokrassar.AutoPostTelegramBot.flowFilter
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.flow.collectWithErrors
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendTextMessage
