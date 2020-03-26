@@ -9,10 +9,13 @@ import com.github.insanusmokrassar.AutoPostTelegramBot.flowFilter
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.flow.collectWithErrors
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
 import com.github.insanusmokrassar.TelegramBotAPI.requests.answers.createAnswer
+import com.github.insanusmokrassar.TelegramBotAPI.types.*
+import com.github.insanusmokrassar.TelegramBotAPI.types.CallbackQuery.CallbackQuery
 import com.github.insanusmokrassar.TelegramBotAPI.types.CallbackQuery.MessageDataCallbackQuery
-import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
 import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardButtons.CallbackDataInlineKeyboardButton
 import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardButtons.InlineKeyboardButton
+import com.github.insanusmokrassar.TelegramBotAPI.types.message.ForwardFromChannelInfo
+import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.PossiblyForwardedMessage
 import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeUnsafe
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -136,36 +139,45 @@ fun CoroutineScope.enableMarksListener(
         commonLogger.throwing("MarksListener", "Mark update handling", throwable)
     }
 
+    suspend fun triggerMarkReaction(data: String, query: CallbackQuery, userId: UserId, messageId: MessageIdentifier) {
+        val buttonId = data.split(" ")[1]
+        associatedButtons[buttonId] ?.let { button ->
+
+            val mark = Mark(userId.chatId, messageId, buttonId)
+
+            val marked = radioGroupsByOneOfButtons[button] ?.let { radioButtonsIds ->
+                likesPluginLikesTable.insertMarkDeleteOther(
+                    mark,
+                    radioButtonsIds
+                )
+            } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
+
+            bot.execute(
+                query.createAnswer(
+                    if (marked) {
+                        button.positiveAnswer ?.text ?: ""
+                    } else {
+                        button.negativeAnswer ?.text ?: ""
+                    }
+                )
+            )
+        }
+    }
+
     launch {
         asFlow.collectWithErrors { query ->
             supervisorScope {
                 launch(marksListenerExceptionHandler) {
                     val chatId = query.message.chat.id
                     val data = query.data
-                    if (chatId == targetChatId && data.startsWith(like_plugin_data)) {
-                        val buttonId = data.split(" ")[1]
-                        associatedButtons[buttonId] ?.let { button ->
-                            val messageId = query.message.messageId
-                            val userId = query.user.id
-
-                            val mark = Mark(userId.chatId, messageId, buttonId)
-
-                            val marked = radioGroupsByOneOfButtons[button] ?.let { radioButtonsIds ->
-                                likesPluginLikesTable.insertMarkDeleteOther(
-                                    mark,
-                                    radioButtonsIds
-                                )
-                            } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
-
-                            bot.execute(
-                                query.createAnswer(
-                                    if (marked) {
-                                        button.positiveAnswer ?.text ?: ""
-                                    } else {
-                                        button.negativeAnswer ?.text ?: ""
-                                    }
-                                )
-                            )
+                    if (data.startsWith(like_plugin_data)) {
+                        if (chatId == targetChatId) {
+                            triggerMarkReaction(data, query, query.user.id, query.message.messageId)
+                        } else {
+                            val forwardInfo = (query.message as? PossiblyForwardedMessage) ?.forwardInfo
+                            if (forwardInfo != null && forwardInfo is ForwardFromChannelInfo && forwardInfo.channelChat.id == targetChatId) {
+                                triggerMarkReaction(data, query, query.user.id, forwardInfo.messageId)
+                            }
                         }
                     }
                 }

@@ -14,6 +14,10 @@ results with cancelled marks
 
 * Updated version of `AutoPostTelegramBot`: `1.8.0` -> `1.8.2`
 
+### 1.8.3
+
+* Now bot will react on likes even in chats
+
 ## 1.7.0
 
 * `AutoPostTelegramBot` version `1.6.1` -> `1.7.0`
