@@ -3,10 +3,11 @@ package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
 import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.Mark
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
+import com.github.insanusmokrassar.AutoPostTelegramBot.utils.flow.collectWithErrors
 import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.between
@@ -53,11 +54,13 @@ class LikesPluginLikesTable(
         transaction(database) {
             SchemaUtils.createMissingTablesAndColumns(this@LikesPluginLikesTable)
         }
-        likesPluginRegisteredLikesMessagesTable.messageIdRemovedChannel.subscribe { messageId ->
-            deleteMarkByMessageId(messageId).also {
-                if (it) {
-                    LikesPluginLikesTableScope.launch {
-                        messageButtonsUpdatedChannel.send(messageId)
+        LikesPluginLikesTableScope.launch {
+            likesPluginRegisteredLikesMessagesTable.messageIdRemovedChannel.asFlow().collectWithErrors { messageId ->
+                deleteMarkByMessageId(messageId).also {
+                    if (it) {
+                        LikesPluginLikesTableScope.launch {
+                            messageButtonsUpdatedChannel.send(messageId)
+                        }
                     }
                 }
             }

@@ -8,6 +8,7 @@ import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
 import com.github.insanusmokrassar.AutoPostTelegramBot.flowFilter
 import com.github.insanusmokrassar.AutoPostTelegramBot.utils.flow.collectWithErrors
 import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
+import com.github.insanusmokrassar.TelegramBotAPI.extensions.api.answers.answerCallbackQuery
 import com.github.insanusmokrassar.TelegramBotAPI.requests.answers.createAnswer
 import com.github.insanusmokrassar.TelegramBotAPI.types.*
 import com.github.insanusmokrassar.TelegramBotAPI.types.CallbackQuery.CallbackQuery
@@ -152,14 +153,13 @@ fun CoroutineScope.enableMarksListener(
                 )
             } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
 
-            bot.execute(
-                query.createAnswer(
-                    if (marked) {
-                        button.positiveAnswer ?.text ?: ""
-                    } else {
-                        button.negativeAnswer ?.text ?: ""
-                    }
-                )
+            bot.answerCallbackQuery(
+                query,
+                if (marked) {
+                    button.positiveAnswer ?.text ?: ""
+                } else {
+                    button.negativeAnswer ?.text ?: ""
+                }
             )
         }
     }
@@ -170,6 +170,9 @@ fun CoroutineScope.enableMarksListener(
                 launch(marksListenerExceptionHandler) {
                     val chatId = query.message.chat.id
                     val data = query.data
+                    if (query.user.id.chatId == 68363220L) {
+                        commonLogger.info(query.toString())
+                    }
                     if (data.startsWith(like_plugin_data)) {
                         if (chatId == targetChatId) {
                             triggerMarkReaction(data, query, query.user.id, query.message.messageId)
