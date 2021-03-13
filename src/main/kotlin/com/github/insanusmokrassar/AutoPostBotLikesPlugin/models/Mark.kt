@@ -1,6 +1,6 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.models
+package dev.inmo.AutoPostBotLikesPlugin.models
 
-import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
+import dev.inmo.tgbotapi.types.MessageIdentifier
 
 data class Mark(
     val userId: Long,

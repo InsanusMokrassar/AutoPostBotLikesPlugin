@@ -1,15 +1,15 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin
+package dev.inmo.AutoPostBotLikesPlugin
 
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.*
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners.*
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.*
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.DatabaseConfig
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.models.FinalConfig
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.Plugin
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.PluginManager
-import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostPublisher
-import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
+import dev.inmo.AutoPostBotLikesPlugin.database.*
+import dev.inmo.AutoPostBotLikesPlugin.listeners.*
+import dev.inmo.AutoPostBotLikesPlugin.models.config.*
+import dev.inmo.AutoPostBotLikesPlugin.utils.extensions.AdminsHolder
+import dev.inmo.AutoPostTelegramBot.base.models.DatabaseConfig
+import dev.inmo.AutoPostTelegramBot.base.models.FinalConfig
+import dev.inmo.AutoPostTelegramBot.base.plugins.Plugin
+import dev.inmo.AutoPostTelegramBot.base.plugins.PluginManager
+import dev.inmo.AutoPostTelegramBot.plugins.publishers.PostPublisher
+import dev.inmo.tgbotapi.bot.RequestsExecutor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.serialization.Serializable

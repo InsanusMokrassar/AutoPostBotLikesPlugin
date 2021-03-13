@@ -1,20 +1,18 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
+package dev.inmo.AutoPostBotLikesPlugin.database
 
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.Mark
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.extensions.subscribe
-import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
+import dev.inmo.AutoPostBotLikesPlugin.models.ButtonMark
+import dev.inmo.AutoPostBotLikesPlugin.models.Mark
+import dev.inmo.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
+import dev.inmo.AutoPostTelegramBot.utils.flow.collectWithErrors
+import dev.inmo.tgbotapi.types.MessageIdentifier
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.between
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
+import org.jetbrains.exposed.sql.jodatime.datetime
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 
@@ -53,11 +51,13 @@ class LikesPluginLikesTable(
         transaction(database) {
             SchemaUtils.createMissingTablesAndColumns(this@LikesPluginLikesTable)
         }
-        likesPluginRegisteredLikesMessagesTable.messageIdRemovedChannel.subscribe { messageId ->
-            deleteMarkByMessageId(messageId).also {
-                if (it) {
-                    LikesPluginLikesTableScope.launch {
-                        messageButtonsUpdatedChannel.send(messageId)
+        LikesPluginLikesTableScope.launch {
+            likesPluginRegisteredLikesMessagesTable.messageIdRemovedChannel.asFlow().collectWithErrors { messageId ->
+                deleteMarkByMessageId(messageId).also {
+                    if (it) {
+                        LikesPluginLikesTableScope.launch {
+                            messageButtonsUpdatedChannel.send(messageId)
+                        }
                     }
                 }
             }
@@ -82,9 +82,7 @@ class LikesPluginLikesTable(
             buttonIdColumn.eq(
                 mark.buttonId
             )
-        ).and(
-            cancelDateTimeColumn.isNull()
-        )
+        ).and { cancelDateTimeColumn.isNull() }
     }
 
     private fun insertMark(mark: Mark): Boolean {
@@ -196,9 +194,7 @@ class LikesPluginLikesTable(
             userIdColumn.eq(
                 userId
             )
-        ).and(
-            cancelDateTimeColumn.isNull()
-        )
+        ).and { cancelDateTimeColumn.isNull() }
         return transaction(database) {
             select(selectStatement).map {
                 it.asMark
@@ -220,9 +216,7 @@ class LikesPluginLikesTable(
     fun marksOfMessage(messageId: MessageIdentifier): List<Mark> {
         val selectStatement = messageIdColumn.eq(
             messageId
-        ).and(
-            cancelDateTimeColumn.isNull()
-        )
+        ).and { cancelDateTimeColumn.isNull() }
         return transaction(database) {
             select(selectStatement).map {
                 it.asMark
@@ -235,22 +229,18 @@ class LikesPluginLikesTable(
             messageId
         ).and(
             buttonIdColumn.eq(buttonId)
-        ).and(
-            cancelDateTimeColumn.isNull()
-        )
+        ).and { cancelDateTimeColumn.isNull() }
         return ButtonMark(
             messageId,
             buttonId,
-            transaction(database) { select (selectStatement).count() }
+            transaction(database) { select (selectStatement).count() }.toInt()
         )
     }
 
     fun getMessageButtonMarks(messageId: MessageIdentifier): List<ButtonMark> {
         val selectStatement = messageIdColumn.eq(
             messageId
-        ).and(
-            cancelDateTimeColumn.isNull()
-        )
+        ).and { cancelDateTimeColumn.isNull() }
 
         val mapOfButtonsCount = mutableMapOf<String, Int>()
         transaction(database) {
@@ -269,15 +259,17 @@ class LikesPluginLikesTable(
     }
 
     fun getMarksInDateTimeRange(from: DateTime? = null, to: DateTime? = null): List<Mark> {
-        val selectStatement = from ?.let { _ ->
-            to ?.let { _ ->
-                dateTimeColumn.between(from, to)
-            } ?: dateTimeColumn.greaterEq(from)
-        } ?: to ?.let { _ ->
-            dateTimeColumn.lessEq(to)
-        } ?.and(
-            cancelDateTimeColumn.isNull()
-        ) ?: cancelDateTimeColumn.isNull()
+        val selectStatement: SqlExpressionBuilder.() -> Op<Boolean> = {
+            from ?.let { _ ->
+                to ?.let { _ ->
+                    dateTimeColumn.between(from, to)
+                } ?: dateTimeColumn.greaterEq(from)
+            } ?: to ?.let { _ ->
+                dateTimeColumn.lessEq(to)
+            } ?.and(
+                cancelDateTimeColumn.isNull()
+            ) ?: cancelDateTimeColumn.isNull()
+        }
         return transaction(database) {
             select(selectStatement).map { it.asMark }
         }

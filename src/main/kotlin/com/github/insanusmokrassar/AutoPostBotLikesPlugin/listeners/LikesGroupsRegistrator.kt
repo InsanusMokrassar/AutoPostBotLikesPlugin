@@ -1,15 +1,15 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
+package dev.inmo.AutoPostBotLikesPlugin.listeners
 
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginMessagesTable
-import com.github.insanusmokrassar.AutoPostTelegramBot.plugins.publishers.PostIdListPostMessagesTelegramMessages
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.flow.collectWithErrors
-import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
-import com.github.insanusmokrassar.TelegramBotAPI.requests.send.SendTextMessage
-import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
-import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
-import com.github.insanusmokrassar.TelegramBotAPI.types.ParseMode.MarkdownParseMode
-import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.MediaGroupMessage
-import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.Message
+import dev.inmo.AutoPostBotLikesPlugin.database.LikesPluginMessagesTable
+import dev.inmo.AutoPostTelegramBot.plugins.publishers.PostIdListPostMessagesTelegramMessages
+import dev.inmo.AutoPostTelegramBot.utils.flow.collectWithErrors
+import dev.inmo.tgbotapi.bot.RequestsExecutor
+import dev.inmo.tgbotapi.requests.send.SendTextMessage
+import dev.inmo.tgbotapi.types.ChatId
+import dev.inmo.tgbotapi.types.MessageIdentifier
+import dev.inmo.tgbotapi.types.ParseMode.MarkdownParseMode
+import dev.inmo.tgbotapi.types.message.abstracts.MediaGroupMessage
+import dev.inmo.tgbotapi.types.message.abstracts.Message
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.flow.asFlow
@@ -42,7 +42,7 @@ class LikesGroupsRegistrator(
             it.messageId
         } ?: return false
 
-        val messageIdToRegister = if (separateAlways || (lastMessage is MediaGroupMessage)) {
+        val messageIdToRegister = if (separateAlways || (lastMessage is MediaGroupMessage<*>)) {
             registerSeparatedLike(firstMessage.messageId)
         } else {
             registerAttachedLike(lastMessage.messageId)
@@ -55,7 +55,7 @@ class LikesGroupsRegistrator(
                 messageIdToRegister,
                 it,
                 messages.mapNotNull { message ->
-                    (message as? MediaGroupMessage) ?.let { asMediaGroupMessage ->
+                    (message as? MediaGroupMessage<*>) ?.let { asMediaGroupMessage ->
                         asMediaGroupMessage.messageId to asMediaGroupMessage.mediaGroupId
                     }
                 }.toMap()

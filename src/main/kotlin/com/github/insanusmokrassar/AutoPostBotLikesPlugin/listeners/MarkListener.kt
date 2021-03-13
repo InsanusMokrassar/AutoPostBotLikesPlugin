@@ -1,22 +1,23 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.listeners
+package dev.inmo.AutoPostBotLikesPlugin.listeners
 
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.ButtonMark
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.Mark
-import com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config.ButtonConfig
-import com.github.insanusmokrassar.AutoPostTelegramBot.base.plugins.commonLogger
-import com.github.insanusmokrassar.AutoPostTelegramBot.flowFilter
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.flow.collectWithErrors
-import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
-import com.github.insanusmokrassar.TelegramBotAPI.requests.answers.createAnswer
-import com.github.insanusmokrassar.TelegramBotAPI.types.*
-import com.github.insanusmokrassar.TelegramBotAPI.types.CallbackQuery.CallbackQuery
-import com.github.insanusmokrassar.TelegramBotAPI.types.CallbackQuery.MessageDataCallbackQuery
-import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardButtons.CallbackDataInlineKeyboardButton
-import com.github.insanusmokrassar.TelegramBotAPI.types.buttons.InlineKeyboardButtons.InlineKeyboardButton
-import com.github.insanusmokrassar.TelegramBotAPI.types.message.ForwardFromChannelInfo
-import com.github.insanusmokrassar.TelegramBotAPI.types.message.abstracts.PossiblyForwardedMessage
-import com.github.insanusmokrassar.TelegramBotAPI.utils.extensions.executeUnsafe
+import dev.inmo.AutoPostBotLikesPlugin.database.LikesPluginLikesTable
+import dev.inmo.AutoPostBotLikesPlugin.models.ButtonMark
+import dev.inmo.AutoPostBotLikesPlugin.models.Mark
+import dev.inmo.AutoPostBotLikesPlugin.models.config.ButtonConfig
+import dev.inmo.AutoPostTelegramBot.base.plugins.commonLogger
+import dev.inmo.AutoPostTelegramBot.flowFilter
+import dev.inmo.AutoPostTelegramBot.utils.flow.collectWithErrors
+import dev.inmo.tgbotapi.bot.RequestsExecutor
+import dev.inmo.tgbotapi.extensions.api.answers.answerCallbackQuery
+import dev.inmo.tgbotapi.extensions.utils.shortcuts.executeUnsafe
+import dev.inmo.tgbotapi.requests.answers.createAnswer
+import dev.inmo.tgbotapi.types.*
+import dev.inmo.tgbotapi.types.CallbackQuery.CallbackQuery
+import dev.inmo.tgbotapi.types.CallbackQuery.MessageDataCallbackQuery
+import dev.inmo.tgbotapi.types.buttons.InlineKeyboardButtons.CallbackDataInlineKeyboardButton
+import dev.inmo.tgbotapi.types.buttons.InlineKeyboardButtons.InlineKeyboardButton
+import dev.inmo.tgbotapi.types.message.ForwardFromChannelInfo
+import dev.inmo.tgbotapi.types.message.abstracts.PossiblyForwardedMessage
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -152,14 +153,13 @@ fun CoroutineScope.enableMarksListener(
                 )
             } ?: likesPluginLikesTable.insertOrDeleteMark(mark)
 
-            bot.execute(
-                query.createAnswer(
-                    if (marked) {
-                        button.positiveAnswer ?.text ?: ""
-                    } else {
-                        button.negativeAnswer ?.text ?: ""
-                    }
-                )
+            bot.answerCallbackQuery(
+                query,
+                if (marked) {
+                    button.positiveAnswer ?.text ?: ""
+                } else {
+                    button.negativeAnswer ?.text ?: ""
+                }
             )
         }
     }
@@ -170,6 +170,9 @@ fun CoroutineScope.enableMarksListener(
                 launch(marksListenerExceptionHandler) {
                     val chatId = query.message.chat.id
                     val data = query.data
+                    if (query.user.id.chatId == 68363220L) {
+                        commonLogger.info(query.toString())
+                    }
                     if (data.startsWith(like_plugin_data)) {
                         if (chatId == targetChatId) {
                             triggerMarkReaction(data, query, query.user.id, query.message.messageId)
