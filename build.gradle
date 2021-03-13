@@ -1,5 +1,5 @@
-project.version = "1.9.0"
-project.group = "com.github.insanusmokrassar"
+project.version = "$version"
+project.group = "dev.inmo"
 
 buildscript {
     repositories {
@@ -11,7 +11,6 @@ buildscript {
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
-        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:$gradle_bintray_plugin_version"
     }
 }
 
@@ -27,12 +26,21 @@ repositories {
     mavenCentral()
     maven { url "https://kotlin.bintray.com/kotlinx" }
     maven { url "https://dl.bintray.com/kotlin/ktor" }
+    if ((project.hasProperty('GITHUB_USER') || System.getenv('GITHUB_USER') != null) && (project.hasProperty('GITHUB_TOKEN') || System.getenv('GITHUB_TOKEN') != null)) {
+        maven {
+            url "https://maven.pkg.github.com/InsanusMokrassar/AutoPostTelegramBot"
+            credentials {
+                username = project.hasProperty('GITHUB_USER') ? project.property('GITHUB_USER') : System.getenv('GITHUB_USER')
+                password = project.hasProperty('GITHUB_TOKEN') ? project.property('GITHUB_TOKEN') : System.getenv('GITHUB_TOKEN')
+            }
+        }
+    }
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
-    implementation "com.github.insanusmokrassar:AutoPostTelegramBot:$autopost_telegram_bot_version"
+    implementation "dev.inmo:autoposttelegrambot:$autopost_telegram_bot_version"
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'

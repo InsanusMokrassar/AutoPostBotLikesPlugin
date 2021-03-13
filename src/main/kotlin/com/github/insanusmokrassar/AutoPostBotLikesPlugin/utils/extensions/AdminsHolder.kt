@@ -1,11 +1,11 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.utils.extensions
+package dev.inmo.AutoPostBotLikesPlugin.utils.extensions
 
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
-import com.github.insanusmokrassar.TelegramBotAPI.bot.RequestsExecutor
-import com.github.insanusmokrassar.TelegramBotAPI.requests.chat.get.GetChatAdministrators
-import com.github.insanusmokrassar.TelegramBotAPI.types.ChatId
-import com.github.insanusmokrassar.TelegramBotAPI.types.ChatMember.abstracts.AdministratorChatMember
-import com.github.insanusmokrassar.TelegramBotAPI.types.UserId
+import dev.inmo.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
+import dev.inmo.tgbotapi.bot.RequestsExecutor
+import dev.inmo.tgbotapi.requests.chat.get.GetChatAdministrators
+import dev.inmo.tgbotapi.types.ChatId
+import dev.inmo.tgbotapi.types.ChatMember.abstracts.AdministratorChatMember
+import dev.inmo.tgbotapi.types.UserId
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.joda.time.DateTime

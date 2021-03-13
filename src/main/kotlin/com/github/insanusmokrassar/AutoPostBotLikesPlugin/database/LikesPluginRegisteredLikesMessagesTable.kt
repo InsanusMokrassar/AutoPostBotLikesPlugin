@@ -1,11 +1,12 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.database
+package dev.inmo.AutoPostBotLikesPlugin.database
 
-import com.github.insanusmokrassar.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
-import com.github.insanusmokrassar.TelegramBotAPI.types.MessageIdentifier
+import dev.inmo.AutoPostTelegramBot.utils.NewDefaultCoroutineScope
+import dev.inmo.tgbotapi.types.MessageIdentifier
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.jodatime.datetime
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 

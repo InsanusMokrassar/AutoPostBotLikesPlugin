@@ -1,4 +1,4 @@
-package com.github.insanusmokrassar.AutoPostBotLikesPlugin.models.config
+package dev.inmo.AutoPostBotLikesPlugin.models.config
 
 import kotlinx.serialization.Serializable
 
